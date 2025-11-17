@@ -38,6 +38,7 @@
   flex-direction: column;
   background: var(--bg-primary);
   color: var(--text-primary);
+  overflow: hidden;
 }
 
 .globe-container {
@@ -45,6 +46,7 @@
   position: relative;
   width: 100%;
   overflow: hidden;
+  touch-action: none;
 }
 
 .globe-canvas {

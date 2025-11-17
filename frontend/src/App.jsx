@@ -491,22 +491,22 @@ function App() {
     const mouse = new THREE.Vector2()
     
     // interaction
-    let isMouseDown = false
+    let isPointerDown = false
     let hasDragged = false
-    let previousMousePosition = { x: 0, y: 0 }
+    let previousPointerPosition = { x: 0, y: 0 }
     
-    const onMouseDown = (e) => {
-      isMouseDown = true
+    const onPointerDown = (e) => {
+      isPointerDown = true
       hasDragged = false
-      previousMousePosition = { x: e.clientX, y: e.clientY }
+      previousPointerPosition = { x: e.clientX, y: e.clientY }
     }
     
-    const onMouseMove = (e) => {
-      if (isMouseDown) {
-        const deltaX = e.clientX - previousMousePosition.x
-        const deltaY = e.clientY - previousMousePosition.y
+    const onPointerMove = (e) => {
+      if (isPointerDown) {
+        const deltaX = e.clientX - previousPointerPosition.x
+        const deltaY = e.clientY - previousPointerPosition.y
         
-        // if mouse moved more than a few pixels, it's a drag
+        // if pointer moved more than a few pixels, it's a drag
         if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) {
           hasDragged = true
           
@@ -521,7 +521,7 @@ function App() {
             }
           })
           
-          previousMousePosition = { x: e.clientX, y: e.clientY }
+          previousPointerPosition = { x: e.clientX, y: e.clientY }
         }
       } else {
         // check for hover
@@ -541,8 +541,8 @@ function App() {
       }
     }
     
-    const onMouseUp = (e) => {
-      if (isMouseDown && !hasDragged) {
+    const onPointerUp = (e) => {
+      if (isPointerDown && !hasDragged) {
         // click detection (only if didn't drag)
         mouse.x = (e.clientX / containerRef.current.clientWidth) * 2 - 1
         mouse.y = -(e.clientY / containerRef.current.clientHeight) * 2 + 1
@@ -588,13 +588,13 @@ function App() {
           setSelectedCountry(null)
         }
       }
-      isMouseDown = false
+      isPointerDown = false
       hasDragged = false
     }
     
-    containerRef.current.addEventListener('mousedown', onMouseDown)
-    containerRef.current.addEventListener('mousemove', onMouseMove)
-    containerRef.current.addEventListener('mouseup', onMouseUp)
+    containerRef.current.addEventListener('pointerdown', onPointerDown)
+    containerRef.current.addEventListener('pointermove', onPointerMove)
+    containerRef.current.addEventListener('pointerup', onPointerUp)
     
     // handle resize
     const handleResize = () => {
@@ -615,9 +615,9 @@ function App() {
     return () => {
       window.removeEventListener('resize', handleResize)
       if (containerRef.current) {
-        containerRef.current.removeEventListener('mousedown', onMouseDown)
-        containerRef.current.removeEventListener('mousemove', onMouseMove)
-        containerRef.current.removeEventListener('mouseup', onMouseUp)
+        containerRef.current.removeEventListener('pointerdown', onPointerDown)
+        containerRef.current.removeEventListener('pointermove', onPointerMove)
+        containerRef.current.removeEventListener('pointerup', onPointerUp)
       }
       renderer.dispose()
       if (containerRef.current && renderer.domElement) {
