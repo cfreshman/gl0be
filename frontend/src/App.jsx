@@ -160,6 +160,14 @@ const THEMES = {
     background: '#121113',
     population: '#55b080'
   },
+  professional: {
+    ocean: '#aaaaaa',
+    country: '#ffffff',
+    highlight: '#0044ff',
+    border: '#0044ff',
+    background: '#111111',
+    population: '#0044ff'
+  },
   lavender: {
     ocean: '#9b88c4',
     country: '#b8a8d6',
