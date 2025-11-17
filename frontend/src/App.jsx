@@ -185,6 +185,30 @@ const THEMES = {
   }
 }
 
+// Helper to convert HSL to hex
+function hslToHex(h, s, l) {
+  l /= 100
+  const a = s * Math.min(l, 1 - l) / 100
+  const f = n => {
+    const k = (n + h / 30) % 12
+    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1)
+    return Math.round(255 * color).toString(16).padStart(2, '0')
+  }
+  return `#${f(0)}${f(8)}${f(4)}`
+}
+
+// Generate theme from hue (0-360)
+function generateHueTheme(hue) {
+  const sat = 60 // saturation percentage
+  return {
+    ocean: hslToHex(hue, sat, 25),
+    country: hslToHex(hue, sat, 40),
+    highlight: hslToHex(hue, sat, 55),
+    border: hslToHex(hue, sat, 70),
+    background: hslToHex(hue, 20, 8)
+  }
+}
+
 // IndexedDB helpers for large data storage
 const DB_NAME = 'globeDB'
 const DB_VERSION = 1
@@ -391,21 +415,72 @@ function App() {
         const prevIndex = (currentIndex - 1 + themeNames.length) % themeNames.length
         const prevTheme = themeNames[prevIndex]
         window.control.setTheme(prevTheme)
+      },
+      setHue: (hue) => {
+        if (typeof hue !== 'number' || hue < 0 || hue > 360) {
+          console.error('Hue must be a number between 0 and 360')
+          return
+        }
+        
+        const theme = generateHueTheme(hue)
+        const root = document.documentElement
+        
+        // Update CSS variables
+        root.style.setProperty('--ocean-color', theme.ocean)
+        root.style.setProperty('--country-color', theme.country)
+        root.style.setProperty('--country-highlight', theme.highlight)
+        root.style.setProperty('--country-border', theme.border)
+        root.style.setProperty('--globe-background', theme.background)
+        
+        currentTheme = `hue-${hue}`
+        console.log(`Hue theme set to: ${hue}°`)
+        
+        // Update URL params
+        const url = new URL(window.location)
+        url.searchParams.delete('theme')
+        url.searchParams.set('hue', hue)
+        window.history.replaceState({}, '', url)
+        
+        // Trigger a re-render by dispatching a custom event
+        window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: currentTheme } }))
       }
     }
     
     console.log('Debug controls available:')
     console.log('  control.downloadGeometry() - download geometry file')
     console.log('  control.setTheme(name) - change globe theme')
+    console.log('  control.setHue(0-360) - set custom hue theme')
     console.log('  control.listThemes() - list all themes')
     console.log('  control.currentTheme() - get current theme')
     console.log('  control.nextTheme() - cycle to next theme')
     console.log('  control.prevTheme() - cycle to previous theme')
+    console.log('  or use ?hue=0-360 in URL for custom hue theme')
     
-    // Check for theme in URL params and apply it
+    // Check for hue or theme in URL params and apply it
     const url = new URL(window.location)
+    const hueParam = url.searchParams.get('hue')
     const urlTheme = url.searchParams.get('theme')
-    if (urlTheme && THEMES[urlTheme]) {
+    
+    if (hueParam !== null) {
+      const hue = parseInt(hueParam)
+      if (!isNaN(hue) && hue >= 0 && hue <= 360) {
+        const theme = generateHueTheme(hue)
+        const root = document.documentElement
+        
+        root.style.setProperty('--ocean-color', theme.ocean)
+        root.style.setProperty('--country-color', theme.country)
+        root.style.setProperty('--country-highlight', theme.highlight)
+        root.style.setProperty('--country-border', theme.border)
+        root.style.setProperty('--globe-background', theme.background)
+        
+        currentTheme = `hue-${hue}`
+        console.log(`Applied hue theme: ${hue}°`)
+        
+        window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: currentTheme } }))
+      } else {
+        console.error('Hue must be between 0 and 360')
+      }
+    } else if (urlTheme && THEMES[urlTheme]) {
       window.control.setTheme(urlTheme)
     }
   }, [])
