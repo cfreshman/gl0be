@@ -775,8 +775,14 @@ function App() {
     scene.add(oceanSphere)
     
     // Load saved camera rotation from localStorage and apply to all elements later
+    // Default: center on Providence, Rhode Island
+    const defaultRotation = {
+      x: 0.7092047876041081,
+      y: -0.2891228630682064
+    }
+    
     const savedRotation = localStorage.getItem('globeRotation')
-    let initialRotation = { x: 0, y: 0 }
+    let initialRotation = defaultRotation
     if (savedRotation) {
       try {
         initialRotation = JSON.parse(savedRotation)
@@ -785,7 +791,13 @@ function App() {
         console.log('Restored globe rotation:', initialRotation)
       } catch (e) {
         console.error('Failed to restore globe rotation:', e)
+        oceanSphere.rotation.x = defaultRotation.x
+        oceanSphere.rotation.y = defaultRotation.y
       }
+    } else {
+      oceanSphere.rotation.x = defaultRotation.x
+      oceanSphere.rotation.y = defaultRotation.y
+      console.log('Set default rotation centered on Providence, RI:', defaultRotation)
     }
     
     const countryMeshes = []
