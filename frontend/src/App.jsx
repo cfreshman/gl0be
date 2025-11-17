@@ -6,6 +6,143 @@ import './App.css'
 const GLOBE_VERSION = 3 // Increment when algorithm changes
 const GLOBE_GEOMETRY_URL = 'https://p057.co/:1w4a3vqswy1i.json'
 
+// Globe themes
+const THEMES = {
+  default: {
+    ocean: '#2158a0',
+    country: '#366b4a',
+    highlight: '#55b080',
+    border: '#4a9eff',
+    background: '#0a0a0a'
+  },
+  vibrant: {
+    ocean: '#81abe1',
+    country: '#127437',
+    highlight: '#1a9c57',
+    border: '#a0ffeb',
+    background: '#0a0a0a'
+  },
+  paper: {
+    ocean: '#7ba8d1',
+    country: '#8fbc8f',
+    highlight: '#a8d5a8',
+    border: '#5a8db8',
+    background: '#f5f5dc'
+  },
+  noir: {
+    ocean: '#1a1a1a',
+    country: '#2d2d2d',
+    highlight: '#4a4a4a',
+    border: '#666666',
+    background: '#000000'
+  },
+  matrix: {
+    ocean: '#001100',
+    country: '#003300',
+    highlight: '#00ff00',
+    border: '#00ff41',
+    background: '#000000'
+  },
+  midnight: {
+    ocean: '#1e3a5f',
+    country: '#2d2d44',
+    highlight: '#4a4a6a',
+    border: '#6b8cae',
+    background: '#0d0d1a'
+  },
+  forest: {
+    ocean: '#4a7c8e',
+    country: '#2d5016',
+    highlight: '#4a7c2d',
+    border: '#7da87b',
+    background: '#1a1f15'
+  },
+  desert: {
+    ocean: '#5b8fa3',
+    country: '#c19a6b',
+    highlight: '#d4af7a',
+    border: '#8b7355',
+    background: '#2d2416'
+  },
+  arctic: {
+    ocean: '#4682b4',
+    country: '#dcdcdc',
+    highlight: '#ffffff',
+    border: '#87ceeb',
+    background: '#0a0a0a'
+  },
+  ocean: {
+    ocean: '#006994',
+    country: '#004e71',
+    highlight: '#0099cc',
+    border: '#66d9ef',
+    background: '#001a33'
+  },
+  sunset: {
+    ocean: '#2d4a7c',
+    country: '#8b4513',
+    highlight: '#cd853f',
+    border: '#ff6347',
+    background: '#1a1520'
+  },
+  neon: {
+    ocean: '#1a1a2e',
+    country: '#16213e',
+    highlight: '#0f3460',
+    border: '#00ffff',
+    background: '#0d0d0d'
+  },
+  candy: {
+    ocean: '#ff6b9d',
+    country: '#c44569',
+    highlight: '#f8b500',
+    border: '#ffeaa7',
+    background: '#1e1e2e'
+  },
+  retro: {
+    ocean: '#5f9ea0',
+    country: '#cd853f',
+    highlight: '#daa520',
+    border: '#f4a460',
+    background: '#2f2f1f'
+  },
+  cyberpunk: {
+    ocean: '#0a0e27',
+    country: '#1c1c3a',
+    highlight: '#5d3fd3',
+    border: '#ff00ff',
+    background: '#050510'
+  },
+  volcano: {
+    ocean: '#1a1a2e',
+    country: '#8b2500',
+    highlight: '#ff4500',
+    border: '#ff6347',
+    background: '#0a0a0a'
+  },
+  tropical: {
+    ocean: '#0077be',
+    country: '#00a86b',
+    highlight: '#7cfc00',
+    border: '#ffd700',
+    background: '#003049'
+  },
+  autumn: {
+    ocean: '#5b7c99',
+    country: '#8b4513',
+    highlight: '#d2691e',
+    border: '#cd853f',
+    background: '#1a1410'
+  },
+  lavender: {
+    ocean: '#9b88c4',
+    country: '#b8a8d6',
+    highlight: '#d4c5f0',
+    border: '#e6d5ff',
+    background: '#f5f0ff'
+  }
+}
+
 // IndexedDB helpers for large data storage
 const DB_NAME = 'globeDB'
 const DB_VERSION = 1
@@ -134,6 +271,9 @@ function App() {
   const [hoveredCountry, setHoveredCountry] = useState(null)
   
   useEffect(() => {
+    // Store current theme
+    let currentTheme = 'default'
+    
     // Debug controls available in console
     window.control = {
       downloadGeometry: async () => {
@@ -160,10 +300,72 @@ function App() {
         } catch (err) {
           console.error('Failed to download geometry:', err)
         }
+      },
+      setTheme: (themeName) => {
+        if (!THEMES[themeName]) {
+          console.error(`Theme "${themeName}" not found. Available themes:`, Object.keys(THEMES).join(', '))
+          return
+        }
+        
+        const theme = THEMES[themeName]
+        const root = document.documentElement
+        
+        // Update CSS variables
+        root.style.setProperty('--ocean-color', theme.ocean)
+        root.style.setProperty('--country-color', theme.country)
+        root.style.setProperty('--country-highlight', theme.highlight)
+        root.style.setProperty('--country-border', theme.border)
+        root.style.setProperty('--globe-background', theme.background)
+        
+        currentTheme = themeName
+        console.log(`Theme set to: ${themeName}`)
+        
+        // Update URL params
+        const url = new URL(window.location)
+        url.searchParams.set('theme', themeName)
+        window.history.replaceState({}, '', url)
+        
+        // Trigger a re-render by dispatching a custom event
+        window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: themeName } }))
+      },
+      listThemes: () => {
+        console.log('Available themes:')
+        Object.keys(THEMES).forEach(name => {
+          const marker = name === currentTheme ? '→' : ' '
+          console.log(`${marker} ${name}`)
+        })
+      },
+      currentTheme: () => currentTheme,
+      nextTheme: () => {
+        const themeNames = Object.keys(THEMES)
+        const currentIndex = themeNames.indexOf(currentTheme)
+        const nextIndex = (currentIndex + 1) % themeNames.length
+        const nextTheme = themeNames[nextIndex]
+        window.control.setTheme(nextTheme)
+      },
+      prevTheme: () => {
+        const themeNames = Object.keys(THEMES)
+        const currentIndex = themeNames.indexOf(currentTheme)
+        const prevIndex = (currentIndex - 1 + themeNames.length) % themeNames.length
+        const prevTheme = themeNames[prevIndex]
+        window.control.setTheme(prevTheme)
       }
     }
     
-    console.log('Debug controls available: control.downloadGeometry()')
+    console.log('Debug controls available:')
+    console.log('  control.downloadGeometry() - download geometry file')
+    console.log('  control.setTheme(name) - change globe theme')
+    console.log('  control.listThemes() - list all themes')
+    console.log('  control.currentTheme() - get current theme')
+    console.log('  control.nextTheme() - cycle to next theme')
+    console.log('  control.prevTheme() - cycle to previous theme')
+    
+    // Check for theme in URL params and apply it
+    const url = new URL(window.location)
+    const urlTheme = url.searchParams.get('theme')
+    if (urlTheme && THEMES[urlTheme]) {
+      window.control.setTheme(urlTheme)
+    }
   }, [])
   
   useEffect(() => {
@@ -171,7 +373,9 @@ function App() {
     
     // scene setup
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color(0x0a0a0a)
+    const styles = getComputedStyle(document.documentElement)
+    const bgColor = styles.getPropertyValue('--globe-background').trim() || '#0a0a0a'
+    scene.background = new THREE.Color(bgColor)
     
     // camera setup
     const camera = new THREE.PerspectiveCamera(
@@ -188,12 +392,20 @@ function App() {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     containerRef.current.appendChild(renderer.domElement)
     
-    // get colors from CSS variables
-    const styles = getComputedStyle(document.documentElement)
-    const oceanColor = new THREE.Color(styles.getPropertyValue('--ocean-color').trim())
-    const countryColor = new THREE.Color(styles.getPropertyValue('--country-color').trim())
-    const countryHighlight = new THREE.Color(styles.getPropertyValue('--country-highlight').trim())
-    const borderColor = new THREE.Color(styles.getPropertyValue('--country-border').trim())
+    // Helper to get current colors from CSS variables
+    const getCurrentColors = () => {
+      const styles = getComputedStyle(document.documentElement)
+      return {
+        ocean: new THREE.Color(styles.getPropertyValue('--ocean-color').trim()),
+        country: new THREE.Color(styles.getPropertyValue('--country-color').trim()),
+        highlight: new THREE.Color(styles.getPropertyValue('--country-highlight').trim()),
+        border: new THREE.Color(styles.getPropertyValue('--country-border').trim()),
+        background: new THREE.Color(styles.getPropertyValue('--globe-background').trim() || '#0a0a0a')
+      }
+    }
+    
+    // get initial colors from CSS variables
+    const colors = getCurrentColors()
     
     // globe settings
     const globeRadius = 100
@@ -201,7 +413,7 @@ function App() {
     // ocean sphere
     const oceanSphere = new THREE.Mesh(
       new THREE.SphereGeometry(globeRadius * .99, 64, 64),
-      new THREE.MeshBasicMaterial({ color: oceanColor })
+      new THREE.MeshBasicMaterial({ color: colors.ocean })
     )
     scene.add(oceanSphere)
     
@@ -210,6 +422,8 @@ function App() {
     
     // Helper function to render geometry data
     const renderGeometry = (data) => {
+      const currentColors = getCurrentColors()
+      
       // Recreate meshes from data
       data.countries.forEach(countryData => {
         const geometry = new THREE.BufferGeometry()
@@ -217,7 +431,7 @@ function App() {
         geometry.computeVertexNormals()
         
         const material = new THREE.MeshBasicMaterial({
-          color: countryColor,
+          color: currentColors.country,
           side: THREE.DoubleSide
         })
         
@@ -236,7 +450,7 @@ function App() {
         
         const borderGeometry = new THREE.BufferGeometry().setFromPoints(points)
         const borderMaterial = new THREE.LineBasicMaterial({
-          color: borderColor,
+          color: currentColors.border,
           transparent: true,
           opacity: 0.5
         })
@@ -415,8 +629,9 @@ function App() {
                 geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3))
                 geometry.computeVertexNormals()
                 
+                const currentColors = getCurrentColors()
                 const material = new THREE.MeshBasicMaterial({
-                  color: countryColor,
+                  color: currentColors.country,
                   side: THREE.DoubleSide
                 })
                 
@@ -455,9 +670,10 @@ function App() {
                 borderPoints.push(new THREE.Vector3(point.x, point.y, point.z))
               })
               
+              const currentColors = getCurrentColors()
               const borderGeometry = new THREE.BufferGeometry().setFromPoints(borderPoints)
               const borderMaterial = new THREE.LineBasicMaterial({
-                color: borderColor,
+                color: currentColors.border,
                 transparent: true,
                 opacity: 0.5
               })
@@ -485,6 +701,40 @@ function App() {
     
     // Start loading
     loadGeometry()
+    
+    // Track current selection
+    let currentSelectedCountry = null
+    
+    // Handle theme changes
+    const onThemeChange = () => {
+      const styles = getComputedStyle(document.documentElement)
+      const newOceanColor = new THREE.Color(styles.getPropertyValue('--ocean-color').trim())
+      const newCountryColor = new THREE.Color(styles.getPropertyValue('--country-color').trim())
+      const newCountryHighlight = new THREE.Color(styles.getPropertyValue('--country-highlight').trim())
+      const newBorderColor = new THREE.Color(styles.getPropertyValue('--country-border').trim())
+      const newBackgroundColor = new THREE.Color(styles.getPropertyValue('--globe-background').trim() || '#0a0a0a')
+      
+      // Update scene background
+      scene.background.copy(newBackgroundColor)
+      
+      // Update ocean sphere
+      oceanSphere.material.color.copy(newOceanColor)
+      
+      // Update country meshes
+      countryMeshes.forEach(mesh => {
+        const isHighlighted = mesh.userData.name === currentSelectedCountry
+        mesh.material.color.copy(isHighlighted ? newCountryHighlight : newCountryColor)
+      })
+      
+      // Update borders
+      scene.children.forEach(child => {
+        if (child.type === 'LineLoop') {
+          child.material.color.copy(newBorderColor)
+        }
+      })
+    }
+    
+    window.addEventListener('themechange', onThemeChange)
     
     // raycaster for click detection
     const raycaster = new THREE.Raycaster()
@@ -569,22 +819,28 @@ function App() {
           const clickedCountry = validCountryHits[0].object.userData.name
           console.log('Clicked country:', clickedCountry)
           
+          // Get current theme colors
+          const currentColors = getCurrentColors()
+          
           // update colors: reset all to default, highlight selected
           countryMeshes.forEach(mesh => {
             if (mesh.userData.name === clickedCountry) {
-              mesh.material.color.copy(countryHighlight)
+              mesh.material.color.copy(currentColors.highlight)
             } else {
-              mesh.material.color.copy(countryColor)
+              mesh.material.color.copy(currentColors.country)
             }
           })
           
+          currentSelectedCountry = clickedCountry
           setSelectedCountry(clickedCountry)
         } else {
           // clicked on ocean, reset all colors
           console.log('Clicked ocean or no valid country found')
+          const currentColors = getCurrentColors()
           countryMeshes.forEach(mesh => {
-            mesh.material.color.copy(countryColor)
+            mesh.material.color.copy(currentColors.country)
           })
+          currentSelectedCountry = null
           setSelectedCountry(null)
         }
       }
@@ -614,6 +870,7 @@ function App() {
     // cleanup
     return () => {
       window.removeEventListener('resize', handleResize)
+      window.removeEventListener('themechange', onThemeChange)
       if (containerRef.current) {
         containerRef.current.removeEventListener('pointerdown', onPointerDown)
         containerRef.current.removeEventListener('pointermove', onPointerMove)
