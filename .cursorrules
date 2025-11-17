@@ -1,0 +1,186 @@
+project chat output:
+
+yeah — you don’t need anything exotic. the standard geo datasets work fine on a sphere.
+
+**best options (all free + widely used):**
+
+### **1. Natural Earth (the usual choice)**
+
+* URL: naturalearthdata.com (you’ve probably seen it)
+* has **1:110m**, **1:50m**, **1:10m** admin boundaries
+* available as **GeoJSON**, **TopoJSON**, and shapefiles
+* **1:110m** is perfect for a globe (lightweight, ~80–200 KB)
+* widely used in three.js examples
+
+### **2. geojson-world (simplest)**
+
+* github: `datasets/geo-countries` or `johan/world.geo.json`
+* small, single-file **GeoJSON of world countries**
+* not as detailed as Natural Earth, but extremely easy to plug in
+
+### **3. topojson-world-atlas (tiny + optimized)**
+
+* npm: `world-atlas`
+* includes:
+
+  * `110m.json`
+  * `50m.json`
+  * `10m.json`
+* **TopoJSON is tiny** (like 180 KB for the whole world)
+* perfect for performance; convert to meshes via `topojson-client`
+
+### **which one to pick?**
+
+* **want smallest + fastest?** → `world-atlas` (TopoJSON)
+* **want highest quality?** → Natural Earth 1:10m
+* **want easiest drop-in file?** → any single-file GeoJSON from GitHub
+
+### **mapping onto a three.js sphere**
+
+just project lat/lon to 3D:
+
+```
+x = R * cos(lat) * cos(lon)
+y = R * sin(lat)
+z = R * cos(lat) * sin(lon)
+```
+
+and build `THREE.Shape` → `THREE.ShapeGeometry` or extrusions for borders.
+
+if you want, i can generate a minimal working three.js globe demo w/ clickable countries.
+
+
+
+rules paste - ignore stack, use simple static html:
+
+we are building 'gl0be'
+
+the project setup is react/vite frontend, nodejs/express/mongo (no mongoose) backend, nginx on host, phosphor icons
+use ports 5840 for frontend, 5841 for backend, 5842 for mongo
+no fucking docker
+
+we use a single fucking app css file - App.css (and index.css) - no more. everything goes in App.css. that is the only way you'll write DRY css with nice useful ss variables
+
+
+ABOUT 'gl0be'
+- read the chat paste above
+
+IN CONCLUSION
+- ask me when ur unsure what to do
+- try to DRY as much as possible
+
+
+the deploy scripts need to
+- set up an ubuntu 24 host with all the correct software configured for the correct ports and an initial dummy nginx
+- have a certbot script
+- deploy scripts for nginx, front, back, db, and all
+- RUN HERE (LOCALLY), MANIPULATE REMOTE
+- BUILD HERE, RSYNC OVER
+- use pm2 holy hell
+- place under /var/www
+
+stop trying to restart or deploy the local server yourself. i do that
+
+you have to use nvm use to get past my system's node version
+
+you CANNOT USE 100VH ITS A BROKEN FEATURE
+again you CANNOT USE 100VH ITS A BROKEN FEATURE
+again again you CANNOT USE 100VH ITS A BROKEN FEATURE
+
+NEVER add css animations without asking me
+
+fucking stop saying im "absolutely right"
+
+FUCKING ALWAYS USE FLEX GAP INSTEAD OF MARGIN FOR SPACING ITEMS
+
+NEVER "REVERT/DISABLE FOR NOW AND GET BASIC FUNCTIONALITY WORKING when THAT ALREADY FUCKING WORKED AND WE'RE DOING THE NEXT THING AND CANNOT STOP"
+
+gpt-5 IS CORRECT. ITS 2025 AND GPT-5 IS FUCKING OUT. STOP CHANGING IT AND ADDING TEMP
+
+the UI uses lowercase casing like this file. proper nouns are still cased correctly
+
+i hate movement transitions. i hate border transitions too. and animations must MEAN something, like the item is clickable
+
+use css variables holy fucking hell
+
+use "Noto Sans"
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+but use css vars or whatever so this is easy to switch
+
+use "Google Sans Code" for monospace use cases
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
+
+you should be using YYYY-MM-DD format in technical places
+
+i dont think mobile should have different styles, i think desktop should be using mobile spacing. desktop spacing is usually too big
+
+i dont want to much fucking repetitive text
+
+no backwards compatability. its the first fucking day of making this
+
+use common classes you fucking idiot
+again, use css vars. adding a color? use a var
+
+avoid h1, h2, h3, etc. header tags add too many styles
+
+DO NOT DOUBLE NEST CARDS UNLESS ABSOLUTELY NECESSARY. THERE SHOULD USUALLY ONLY BE AN OUTER CARD
+
+when *I* change code, leave it, or at least ask before reverting
+
+NEVER ATTEMPT TO CHANGE DEPLOYED ARTIFACTS OR CONFIGURATION BY ANY MEANS OTHER THAN EDITING THE DEPLOY SCRIPTS
+
+always number options you give me so i can refer to them easily
+
+
+MONGO INSTRUCTIONS PASTE BELOW THIS LINE
+
+Install MongoDB Community Edition
+Follow these steps to install MongoDB Community Edition using the apt package manager.
+
+1
+Import the public key.
+From a terminal, install gnupg and curl if they are not already available:
+
+sudo apt-get install gnupg curl
+
+To import the MongoDB public GPG key, run the following command:
+
+curl -fsSL https://www.mongodb.org/static/pgp/server-8.0.asc | \
+   sudo gpg -o /usr/share/keyrings/mongodb-server-8.0.gpg \
+   --dearmor
+
+2
+Create the list file.
+Create the list file /etc/apt/sources.list.d/mongodb-org-8.0.list for your version of Ubuntu.
+
+
+Ubuntu 24.04 (Noble)
+
+Ubuntu 22.04 (Jammy)
+
+Ubuntu 20.04 (Focal)
+Create the list file for Ubuntu 24.04 (Noble):
+
+echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-8.0.gpg ] https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-8.0.list
+
+3
+Reload the package database.
+Issue the following command to reload the local package database:
+
+sudo apt-get update
+
+4
+Install MongoDB Community Server.
+You can install either the latest stable version of MongoDB or a specific version of MongoDB.
+
+
+Latest Release
+
+Specific Release
+To install the latest stable version, issue the following
+
+sudo apt-get install -y mongodb-org
