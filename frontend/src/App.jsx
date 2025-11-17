@@ -4,6 +4,7 @@ import Delaunator from 'delaunator'
 import './App.css'
 
 const GLOBE_VERSION = 3 // Increment when algorithm changes
+const GLOBE_GEOMETRY_URL = 'https://p057.co/:1w4a3vqswy1i.json'
 
 // IndexedDB helpers for large data storage
 const DB_NAME = 'globeDB'
@@ -246,22 +247,32 @@ function App() {
       console.log(`Loaded ${countryMeshes.length} countries`)
     }
     
-    // Try to load geometry: static file -> IndexedDB cache -> generate
+    // Try to load geometry: local file -> remote URL -> IndexedDB cache -> generate
     const loadGeometry = async () => {
-      // Try static file first
+      // Try local static file first
       try {
         const response = await fetch(`/globe-geometry-v${GLOBE_VERSION}.json`)
         if (response.ok) {
           const data = await response.json()
-          console.log('Loading globe from static file...')
+          console.log('Loading globe from local static file...')
           renderGeometry(data)
-          
-          // Cache it for future use
-          await setCachedData(data)
           return
         }
       } catch (err) {
-        console.log('No static geometry file found, checking cache...')
+        console.log('No local static file found, trying remote...')
+      }
+      
+      // Try remote URL second
+      try {
+        const response = await fetch(GLOBE_GEOMETRY_URL)
+        if (response.ok) {
+          const data = await response.json()
+          console.log('Loading globe from remote URL...')
+          renderGeometry(data)
+          return
+        }
+      } catch (err) {
+        console.log('Remote URL failed, checking cache...')
       }
       
       // Try IndexedDB cache
@@ -277,7 +288,7 @@ function App() {
         }
       }
       
-      // Generate if not loaded from static or cache
+      // Generate if not loaded from any source (and cache the result)
       // load world data
       fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json')
         .then(res => res.json())
