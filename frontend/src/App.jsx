@@ -140,6 +140,48 @@ const THEMES = {
     highlight: '#d4c5f0',
     border: '#e6d5ff',
     background: '#f5f0ff'
+  },
+  red: {
+    ocean: '#8b0000',
+    country: '#b22222',
+    highlight: '#ff4444',
+    border: '#ff6b6b',
+    background: '#1a0000'
+  },
+  orange: {
+    ocean: '#cc5500',
+    country: '#ff8c00',
+    highlight: '#ffa500',
+    border: '#ffb347',
+    background: '#1a0f00'
+  },
+  green: {
+    ocean: '#006400',
+    country: '#228b22',
+    highlight: '#32cd32',
+    border: '#90ee90',
+    background: '#001a00'
+  },
+  blue: {
+    ocean: '#00008b',
+    country: '#0000cd',
+    highlight: '#4169e1',
+    border: '#87ceeb',
+    background: '#00001a'
+  },
+  pink: {
+    ocean: '#c71585',
+    country: '#ff1493',
+    highlight: '#ff69b4',
+    border: '#ffb6c1',
+    background: '#1a0010'
+  },
+  black: {
+    ocean: '#4a4a4a',
+    country: '#6a6a6a',
+    highlight: '#8a8a8a',
+    border: '#aaaaaa',
+    background: '#f0f0f0'
   }
 }
 
