@@ -1,0 +1,12 @@
+# Python virtual environment
+venv/
+
+# Large raw data files
+data/raw/*.tif*
+
+# Generated data (can be regenerated from scripts)
+data/processed/
+
+# System files
+.DS_Store
+**/.DS_Store

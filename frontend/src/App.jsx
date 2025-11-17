@@ -13,175 +13,200 @@ const THEMES = {
     country: '#366b4a',
     highlight: '#55b080',
     border: '#4a9eff',
-    background: '#0a0a0a'
+    background: '#0a0a0a',
+    population: '#ffcc00'
   },
   vibrant: {
     ocean: '#81abe1',
     country: '#127437',
     highlight: '#1a9c57',
     border: '#a0ffeb',
-    background: '#0a0a0a'
+    background: '#0a0a0a',
+    population: '#ff00ff'
   },
   paper: {
     ocean: '#7ba8d1',
     country: '#8fbc8f',
     highlight: '#a8d5a8',
     border: '#5a8db8',
-    background: '#f5f5dc'
+    background: '#f5f5dc',
+    population: '#d2691e'
   },
   noir: {
     ocean: '#1a1a1a',
     country: '#2d2d2d',
     highlight: '#4a4a4a',
     border: '#666666',
-    background: '#000000'
+    background: '#000000',
+    population: '#cccccc'
   },
   matrix: {
     ocean: '#001100',
     country: '#003300',
     highlight: '#00ff00',
     border: '#00ff41',
-    background: '#000000'
+    background: '#000000',
+    population: '#00ff00'
   },
   midnight: {
     ocean: '#1e3a5f',
     country: '#2d2d44',
     highlight: '#4a4a6a',
     border: '#6b8cae',
-    background: '#0d0d1a'
+    background: '#0d0d1a',
+    population: '#87ceeb'
   },
   forest: {
     ocean: '#4a7c8e',
     country: '#2d5016',
     highlight: '#4a7c2d',
     border: '#7da87b',
-    background: '#1a1f15'
+    background: '#1a1f15',
+    population: '#adff2f'
   },
   desert: {
     ocean: '#5b8fa3',
     country: '#c19a6b',
     highlight: '#d4af7a',
     border: '#8b7355',
-    background: '#2d2416'
+    background: '#2d2416',
+    population: '#ff8c00'
   },
   arctic: {
     ocean: '#4682b4',
     country: '#dcdcdc',
     highlight: '#ffffff',
     border: '#87ceeb',
-    background: '#0a0a0a'
+    background: '#0a0a0a',
+    population: '#00ffff'
   },
   ocean: {
     ocean: '#006994',
     country: '#004e71',
     highlight: '#0099cc',
     border: '#66d9ef',
-    background: '#001a33'
+    background: '#001a33',
+    population: '#40e0d0'
   },
   sunset: {
     ocean: '#2d4a7c',
     country: '#8b4513',
     highlight: '#cd853f',
     border: '#ff6347',
-    background: '#1a1520'
+    background: '#1a1520',
+    population: '#ff69b4'
   },
   neon: {
     ocean: '#1a1a2e',
     country: '#16213e',
     highlight: '#0f3460',
     border: '#00ffff',
-    background: '#0d0d0d'
+    background: '#0d0d0d',
+    population: '#00ffff'
   },
   candy: {
     ocean: '#ff6b9d',
     country: '#c44569',
     highlight: '#f8b500',
     border: '#ffeaa7',
-    background: '#1e1e2e'
+    background: '#1e1e2e',
+    population: '#ffff00'
   },
   retro: {
     ocean: '#5f9ea0',
     country: '#cd853f',
     highlight: '#daa520',
     border: '#f4a460',
-    background: '#2f2f1f'
+    background: '#2f2f1f',
+    population: '#ff8c00'
   },
   cyberpunk: {
     ocean: '#0a0e27',
     country: '#1c1c3a',
     highlight: '#5d3fd3',
     border: '#ff00ff',
-    background: '#050510'
+    background: '#050510',
+    population: '#ff00ff'
   },
   volcano: {
     ocean: '#1a1a2e',
     country: '#8b2500',
     highlight: '#ff4500',
     border: '#ff6347',
-    background: '#0a0a0a'
+    background: '#0a0a0a',
+    population: '#ff4500'
   },
   tropical: {
     ocean: '#0077be',
     country: '#00a86b',
     highlight: '#7cfc00',
     border: '#ffd700',
-    background: '#003049'
+    background: '#003049',
+    population: '#ffd700'
   },
   autumn: {
     ocean: '#5b7c99',
     country: '#8b4513',
     highlight: '#d2691e',
     border: '#cd853f',
-    background: '#1a1410'
+    background: '#1a1410',
+    population: '#ff8c00'
   },
   lavender: {
     ocean: '#9b88c4',
     country: '#b8a8d6',
     highlight: '#d4c5f0',
     border: '#e6d5ff',
-    background: '#f5f0ff'
+    background: '#f5f0ff',
+    population: '#ffffff'
   },
   red: {
     ocean: '#8b0000',
     country: '#b22222',
     highlight: '#ff4444',
     border: '#ff6b6b',
-    background: '#1a0000'
+    background: '#1a0000',
+    population: '#ff6b6b'
   },
   orange: {
     ocean: '#cc5500',
     country: '#ff8c00',
     highlight: '#ffa500',
     border: '#ffb347',
-    background: '#1a0f00'
+    background: '#1a0f00',
+    population: '#ffd700'
   },
   green: {
     ocean: '#006400',
     country: '#228b22',
     highlight: '#32cd32',
     border: '#90ee90',
-    background: '#001a00'
+    background: '#001a00',
+    population: '#adff2f'
   },
   blue: {
     ocean: '#00008b',
     country: '#0000cd',
     highlight: '#4169e1',
     border: '#87ceeb',
-    background: '#00001a'
+    background: '#00001a',
+    population: '#87ceeb'
   },
   pink: {
     ocean: '#c71585',
     country: '#ff1493',
     highlight: '#ff69b4',
     border: '#ffb6c1',
-    background: '#1a0010'
+    background: '#1a0010',
+    population: '#ffb6c1'
   },
   black: {
     ocean: '#4a4a4a',
     country: '#6a6a6a',
     highlight: '#8a8a8a',
     border: '#aaaaaa',
-    background: '#f0f0f0'
+    background: '#f0f0f0',
+    population: '#ffffff'
   }
 }
 
@@ -205,7 +230,8 @@ function generateHueTheme(hue) {
     country: hslToHex(hue, sat, 40),
     highlight: hslToHex(hue, sat, 55),
     border: hslToHex(hue, sat, 70),
-    background: hslToHex(hue, 20, 8)
+    background: hslToHex(hue, 20, 8),
+    population: hslToHex(hue, 80, 60)
   }
 }
 
@@ -382,6 +408,7 @@ function App() {
         root.style.setProperty('--country-highlight', theme.highlight)
         root.style.setProperty('--country-border', theme.border)
         root.style.setProperty('--globe-background', theme.background)
+        root.style.setProperty('--population-color', theme.population)
         
         currentTheme = themeName
         console.log(`Theme set to: ${themeName}`)
@@ -431,6 +458,7 @@ function App() {
         root.style.setProperty('--country-highlight', theme.highlight)
         root.style.setProperty('--country-border', theme.border)
         root.style.setProperty('--globe-background', theme.background)
+        root.style.setProperty('--population-color', theme.population)
         
         currentTheme = `hue-${hue}`
         console.log(`Hue theme set to: ${hue}°`)
@@ -472,6 +500,7 @@ function App() {
         root.style.setProperty('--country-highlight', theme.highlight)
         root.style.setProperty('--country-border', theme.border)
         root.style.setProperty('--globe-background', theme.background)
+        root.style.setProperty('--population-color', theme.population)
         
         currentTheme = `hue-${hue}`
         console.log(`Applied hue theme: ${hue}°`)
@@ -517,7 +546,8 @@ function App() {
         country: new THREE.Color(styles.getPropertyValue('--country-color').trim()),
         highlight: new THREE.Color(styles.getPropertyValue('--country-highlight').trim()),
         border: new THREE.Color(styles.getPropertyValue('--country-border').trim()),
-        background: new THREE.Color(styles.getPropertyValue('--globe-background').trim() || '#0a0a0a')
+        background: new THREE.Color(styles.getPropertyValue('--globe-background').trim() || '#0a0a0a'),
+        population: new THREE.Color(styles.getPropertyValue('--population-color').trim() || '#ffcc00')
       }
     }
     
@@ -533,6 +563,20 @@ function App() {
       new THREE.MeshBasicMaterial({ color: colors.ocean })
     )
     scene.add(oceanSphere)
+    
+    // Load saved camera rotation from localStorage and apply to all elements later
+    const savedRotation = localStorage.getItem('globeRotation')
+    let initialRotation = { x: 0, y: 0 }
+    if (savedRotation) {
+      try {
+        initialRotation = JSON.parse(savedRotation)
+        oceanSphere.rotation.x = initialRotation.x
+        oceanSphere.rotation.y = initialRotation.y
+        console.log('Restored globe rotation:', initialRotation)
+      } catch (e) {
+        console.error('Failed to restore globe rotation:', e)
+      }
+    }
     
     const countryMeshes = []
     let countries = []
@@ -576,6 +620,16 @@ function App() {
       })
       
       console.log(`Loaded ${countryMeshes.length} countries`)
+      
+      // Apply saved rotation to all loaded elements
+      if (initialRotation.x !== 0 || initialRotation.y !== 0) {
+        scene.children.forEach(child => {
+          if (child !== oceanSphere) {
+            child.rotation.x = initialRotation.x
+            child.rotation.y = initialRotation.y
+          }
+        })
+      }
     }
     
     // Try to load geometry: local file -> remote URL -> IndexedDB cache -> generate
@@ -819,6 +873,142 @@ function App() {
     // Start loading
     loadGeometry()
     
+    // Population heightmap
+    const loadPopulationHeightmap = async () => {
+      console.log('Loading population grid data...')
+      
+      try {
+        // Try loading from local file first, then remote URL
+        let gridData
+        try {
+          const response = await fetch('/population_grid.json')
+          if (!response.ok) throw new Error('Local file not found')
+          gridData = await response.json()
+          console.log('Loaded population grid from local file')
+        } catch (err) {
+          console.log('Local population grid not found, loading from remote...')
+          const response = await fetch('https://p057.co/:7u15a05rz01u.json')
+          if (!response.ok) throw new Error('Failed to load population grid from remote')
+          gridData = await response.json()
+          console.log('Loaded population grid from remote URL')
+        }
+        
+        console.log(`Loaded ${gridData.total_points} population grid points`)
+        console.log(`Data source: ${gridData.data_source}`)
+        
+        const points = gridData.points
+        const heightData = []
+        
+        // Find max population for scaling
+        let maxPop = 0
+        points.forEach(point => {
+          if (point.population > maxPop) maxPop = point.population
+        })
+        
+        console.log(`Max population density: ${maxPop.toFixed(2)} people/sq km`)
+        
+        // Create height data with logarithmic scaling
+        points.forEach(point => {
+          // Logarithmic scale for height (population density varies by orders of magnitude)
+          const height = point.population > 0 ? Math.log10(point.population + 1) : 0
+          heightData.push(height)
+        })
+        
+        console.log(`Generated heights for ${points.length} points`)
+        
+        // Find min and max height for opacity scaling (excluding zeros)
+        const nonZeroHeights = heightData.filter(h => h > 0)
+        const minHeight = Math.min(...nonZeroHeights)
+        const maxHeight = Math.max(...nonZeroHeights)
+        console.log(`Height range: ${minHeight.toFixed(2)} to ${maxHeight.toFixed(2)}`)
+        
+        // Get current border color
+        const currentColors = getCurrentColors()
+        
+        // Create circular texture for points
+        const canvas = document.createElement('canvas')
+        canvas.width = 64
+        canvas.height = 64
+        const ctx = canvas.getContext('2d')
+        const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32)
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 1)')
+        gradient.addColorStop(0.5, 'rgba(255, 255, 255, 1)')
+        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)')
+        ctx.fillStyle = gradient
+        ctx.fillRect(0, 0, 64, 64)
+        const circleTexture = new THREE.CanvasTexture(canvas)
+        
+        // Bucket points into 20 opacity groups
+        const numGroups = 20
+        const groups = Array.from({ length: numGroups }, () => [])
+        
+        points.forEach((point, i) => {
+          const pop = point.population
+          if (pop === 0) return // Skip ocean
+          
+          const height = heightData[i]
+          const opacity = (height - minHeight) / (maxHeight - minHeight)
+          
+          // Determine which opacity bucket (0 to numGroups-1)
+          const bucket = Math.min(Math.floor(opacity * numGroups), numGroups - 1)
+          
+          const baseRadius = globeRadius * 1.005
+          const position = latLonToSphere(point.lat, point.lon, baseRadius)
+          
+          groups[bucket].push(position)
+        })
+        
+        // Create a point cloud for each opacity group
+        let totalRendered = 0
+        groups.forEach((groupPositions, groupIdx) => {
+          if (groupPositions.length === 0) return
+          
+          const positions = []
+          groupPositions.forEach(pos => {
+            positions.push(pos.x, pos.y, pos.z)
+          })
+          
+          const geometry = new THREE.BufferGeometry()
+          geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
+          
+          // Calculate opacity for this group (0.05 to 1.0)
+          const groupOpacity = (groupIdx + 1) / numGroups
+          
+          const material = new THREE.PointsMaterial({
+            map: circleTexture,
+            color: currentColors.highlight,
+            size: 1.8,
+            transparent: true,
+            opacity: groupOpacity,
+            sizeAttenuation: true,
+            alphaTest: 0.1
+          })
+          
+          const pointCloud = new THREE.Points(geometry, material)
+          pointCloud.userData = { type: 'population_points' }
+          scene.add(pointCloud)
+          
+          totalRendered += groupPositions.length
+        })
+        
+        console.log(`Rendered ${totalRendered} population points in ${numGroups} opacity groups (${points.length - totalRendered} ocean points skipped)`)
+        
+        // Apply saved rotation to population points
+        if (initialRotation.x !== 0 || initialRotation.y !== 0) {
+          scene.children.forEach(child => {
+            if (child.type === 'Points' && child.userData.type === 'population_points') {
+              child.rotation.x = initialRotation.x
+              child.rotation.y = initialRotation.y
+            }
+          })
+        }
+      } catch (err) {
+        console.error('Error loading population heightmap:', err)
+      }
+    }
+    
+    loadPopulationHeightmap()
+    
     // Track current selection
     let currentSelectedCountry = null
     
@@ -847,6 +1037,13 @@ function App() {
       scene.children.forEach(child => {
         if (child.type === 'LineLoop') {
           child.material.color.copy(newBorderColor)
+        }
+      })
+      
+      // Update population points
+      scene.children.forEach(child => {
+        if (child.type === 'Points' && child.userData.type === 'population_points') {
+          child.material.color.copy(newCountryHighlight)
         }
       })
     }
@@ -887,6 +1084,12 @@ function App() {
               child.rotation.x = oceanSphere.rotation.x
             }
           })
+          
+          // Save rotation to localStorage
+          localStorage.setItem('globeRotation', JSON.stringify({
+            x: oceanSphere.rotation.x,
+            y: oceanSphere.rotation.y
+          }))
           
           previousPointerPosition = { x: e.clientX, y: e.clientY }
         }
