@@ -133,6 +133,39 @@ function App() {
   const [hoveredCountry, setHoveredCountry] = useState(null)
   
   useEffect(() => {
+    // Debug controls available in console
+    window.control = {
+      downloadGeometry: async () => {
+        try {
+          const cached = await getCachedData()
+          if (!cached || !cached.data) {
+            console.error('No cached geometry data found')
+            return
+          }
+          
+          const dataStr = JSON.stringify(cached.data, null, 2)
+          const blob = new Blob([dataStr], { type: 'application/json' })
+          const url = URL.createObjectURL(blob)
+          
+          const a = document.createElement('a')
+          a.href = url
+          a.download = `globe-geometry-v${GLOBE_VERSION}.json`
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+          URL.revokeObjectURL(url)
+          
+          console.log(`Downloaded geometry (version ${GLOBE_VERSION})`)
+        } catch (err) {
+          console.error('Failed to download geometry:', err)
+        }
+      }
+    }
+    
+    console.log('Debug controls available: control.downloadGeometry()')
+  }, [])
+  
+  useEffect(() => {
     if (!containerRef.current) return
     
     // scene setup
@@ -174,56 +207,77 @@ function App() {
     const countryMeshes = []
     let countries = []
     
-    // Try to load from cache first
-    getCachedData().then(cached => {
+    // Helper function to render geometry data
+    const renderGeometry = (data) => {
+      // Recreate meshes from data
+      data.countries.forEach(countryData => {
+        const geometry = new THREE.BufferGeometry()
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(countryData.vertices, 3))
+        geometry.computeVertexNormals()
+        
+        const material = new THREE.MeshBasicMaterial({
+          color: countryColor,
+          side: THREE.DoubleSide
+        })
+        
+        const mesh = new THREE.Mesh(geometry, material)
+        mesh.userData = { name: countryData.name }
+        scene.add(mesh)
+        countryMeshes.push(mesh)
+      })
+      
+      // Recreate borders
+      data.borders.forEach(borderData => {
+        const points = []
+        for (let i = 0; i < borderData.length; i += 3) {
+          points.push(new THREE.Vector3(borderData[i], borderData[i + 1], borderData[i + 2]))
+        }
+        
+        const borderGeometry = new THREE.BufferGeometry().setFromPoints(points)
+        const borderMaterial = new THREE.LineBasicMaterial({
+          color: borderColor,
+          transparent: true,
+          opacity: 0.5
+        })
+        const borderLine = new THREE.LineLoop(borderGeometry, borderMaterial)
+        scene.add(borderLine)
+      })
+      
+      console.log(`Loaded ${countryMeshes.length} countries`)
+    }
+    
+    // Try to load geometry: static file -> IndexedDB cache -> generate
+    const loadGeometry = async () => {
+      // Try static file first
+      try {
+        const response = await fetch(`/globe-geometry-v${GLOBE_VERSION}.json`)
+        if (response.ok) {
+          const data = await response.json()
+          console.log('Loading globe from static file...')
+          renderGeometry(data)
+          
+          // Cache it for future use
+          await setCachedData(data)
+          return
+        }
+      } catch (err) {
+        console.log('No static geometry file found, checking cache...')
+      }
+      
+      // Try IndexedDB cache
+      const cached = await getCachedData()
       if (cached && cached.version === GLOBE_VERSION && cached.data) {
         console.log('Loading globe from cache...')
         try {
-          const data = cached.data
-          
-          // Recreate meshes from cached data
-          data.countries.forEach(countryData => {
-            const geometry = new THREE.BufferGeometry()
-            geometry.setAttribute('position', new THREE.Float32BufferAttribute(countryData.vertices, 3))
-            geometry.computeVertexNormals()
-            
-            const material = new THREE.MeshBasicMaterial({
-              color: countryColor,
-              side: THREE.DoubleSide
-            })
-            
-            const mesh = new THREE.Mesh(geometry, material)
-            mesh.userData = { name: countryData.name }
-            scene.add(mesh)
-            countryMeshes.push(mesh)
-          })
-          
-          // Recreate borders
-          data.borders.forEach(borderData => {
-            const points = []
-            for (let i = 0; i < borderData.length; i += 3) {
-              points.push(new THREE.Vector3(borderData[i], borderData[i + 1], borderData[i + 2]))
-            }
-            
-            const borderGeometry = new THREE.BufferGeometry().setFromPoints(points)
-            const borderMaterial = new THREE.LineBasicMaterial({
-              color: borderColor,
-              transparent: true,
-              opacity: 0.5
-            })
-            const borderLine = new THREE.LineLoop(borderGeometry, borderMaterial)
-            scene.add(borderLine)
-          })
-          
-          console.log(`Loaded ${countryMeshes.length} countries from cache`)
-          return // Successfully loaded from cache
+          renderGeometry(cached.data)
+          return
         } catch (err) {
           console.error('Cache load failed:', err)
-          clearCache()
+          await clearCache()
         }
       }
       
-      // Generate if not loaded from cache
+      // Generate if not loaded from static or cache
       // load world data
       fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json')
         .then(res => res.json())
@@ -416,7 +470,10 @@ function App() {
           })
         })
         .catch(err => console.error('Error loading countries:', err))
-    })
+    }
+    
+    // Start loading
+    loadGeometry()
     
     // raycaster for click detection
     const raycaster = new THREE.Raycaster()
