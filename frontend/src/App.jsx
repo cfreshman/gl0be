@@ -152,6 +152,14 @@ const THEMES = {
     background: '#1a1410',
     population: '#ff8c00'
   },
+  rugged: {
+    ocean: '#d6caa9',
+    country: '#366b4a',
+    highlight: '#55b080',
+    border: '#b8ff4d',
+    background: '#121113',
+    population: '#55b080'
+  },
   lavender: {
     ocean: '#9b88c4',
     country: '#b8a8d6',
@@ -359,9 +367,31 @@ function getCountryAtPoint(lat, lon, countries) {
 
 function App() {
   const containerRef = useRef(null)
+  const sceneRef = useRef(null)
   const bordersVisibleRef = useRef(true)
+  const populationVisibleRef = useRef(true)
+  const panelVisibleRef = useRef(true)
   const [selectedCountry, setSelectedCountry] = useState(null)
   const [hoveredCountry, setHoveredCountry] = useState(null)
+  const [themePanelOpen, setThemePanelOpen] = useState(false)
+  const [panelVisible, setPanelVisible] = useState(true)
+  const [currentThemeName, setCurrentThemeName] = useState('default')
+  const [bordersVisible, setBordersVisible] = useState(true)
+  const [populationVisible, setPopulationVisible] = useState(true)
+  const [displayColors, setDisplayColors] = useState({
+    ocean: '#2158a0',
+    country: '#366b4a',
+    highlight: '#55b080',
+    border: '#4a9eff',
+    background: '#0a0a0a'
+  })
+  const [customColors, setCustomColors] = useState({
+    ocean: '#2158a0',
+    country: '#366b4a',
+    highlight: '#55b080',
+    border: '#4a9eff',
+    background: '#0a0a0a'
+  })
   
   useEffect(() => {
     // Store current theme
@@ -416,6 +446,12 @@ function App() {
         
         // Update URL params
         const url = new URL(window.location)
+        url.searchParams.delete('hue')
+        url.searchParams.delete('ocean')
+        url.searchParams.delete('country')
+        url.searchParams.delete('highlight')
+        url.searchParams.delete('border')
+        url.searchParams.delete('bg')
         url.searchParams.set('theme', themeName)
         window.history.replaceState({}, '', url)
         
@@ -467,6 +503,11 @@ function App() {
         // Update URL params
         const url = new URL(window.location)
         url.searchParams.delete('theme')
+        url.searchParams.delete('ocean')
+        url.searchParams.delete('country')
+        url.searchParams.delete('highlight')
+        url.searchParams.delete('border')
+        url.searchParams.delete('bg')
         url.searchParams.set('hue', hue)
         window.history.replaceState({}, '', url)
         
@@ -475,6 +516,7 @@ function App() {
       },
       setBorders: (visible) => {
         bordersVisibleRef.current = visible
+        setBordersVisible(visible)
         
         // Update URL params
         const url = new URL(window.location)
@@ -486,18 +528,67 @@ function App() {
         window.history.replaceState({}, '', url)
         
         // Update border visibility
-        scene.children.forEach(child => {
-          if (child.userData.type === 'border') {
-            child.visible = visible
-          }
-        })
+        if (sceneRef.current) {
+          sceneRef.current.children.forEach(child => {
+            if (child.userData.type === 'border') {
+              child.visible = visible
+            }
+          })
+        }
         
         console.log(`Borders ${visible ? 'enabled' : 'disabled'}`)
       },
       toggleBorders: () => {
         window.control.setBorders(!bordersVisibleRef.current)
       },
-      bordersVisible: () => bordersVisibleRef.current
+      bordersVisible: () => bordersVisibleRef.current,
+      setPopulation: (visible) => {
+        populationVisibleRef.current = visible
+        setPopulationVisible(visible)
+        
+        // Update URL params
+        const url = new URL(window.location)
+        if (visible) {
+          url.searchParams.delete('population')
+        } else {
+          url.searchParams.set('population', 'off')
+        }
+        window.history.replaceState({}, '', url)
+        
+        // Update population visibility
+        if (sceneRef.current) {
+          sceneRef.current.children.forEach(child => {
+            if (child.type === 'Points' && child.userData.type === 'population_points') {
+              child.visible = visible
+            }
+          })
+        }
+        
+        console.log(`Population ${visible ? 'enabled' : 'disabled'}`)
+      },
+      togglePopulation: () => {
+        window.control.setPopulation(!populationVisibleRef.current)
+      },
+      populationVisible: () => populationVisibleRef.current,
+      setPanel: (visible) => {
+        panelVisibleRef.current = visible
+        setPanelVisible(visible)
+        
+        // Update URL params
+        const url = new URL(window.location)
+        if (visible) {
+          url.searchParams.delete('panel')
+        } else {
+          url.searchParams.set('panel', 'off')
+        }
+        window.history.replaceState({}, '', url)
+        
+        console.log(`Panel ${visible ? 'enabled' : 'disabled'}`)
+      },
+      togglePanel: () => {
+        window.control.setPanel(!panelVisibleRef.current)
+      },
+      panelVisible: () => panelVisibleRef.current
     }
     
     console.log('Debug controls available:')
@@ -510,14 +601,22 @@ function App() {
     console.log('  control.prevTheme() - cycle to previous theme')
     console.log('  control.setBorders(true/false) - show/hide borders')
     console.log('  control.toggleBorders() - toggle borders')
+    console.log('  control.setPopulation(true/false) - show/hide population')
+    console.log('  control.togglePopulation() - toggle population')
+    console.log('  control.setPanel(true/false) - show/hide panel')
+    console.log('  control.togglePanel() - toggle panel')
     console.log('  or use ?hue=0-360 in URL for custom hue theme')
     console.log('  or use ?borders=off in URL to hide borders')
+    console.log('  or use ?population=off in URL to hide population')
+    console.log('  or use ?panel=off in URL to hide panel')
     
-    // Check for hue, theme, or borders in URL params and apply it
+    // Check for hue, theme, borders, or population in URL params and apply it
     const url = new URL(window.location)
     const hueParam = url.searchParams.get('hue')
     const urlTheme = url.searchParams.get('theme')
     const bordersParam = url.searchParams.get('borders')
+    const populationParam = url.searchParams.get('population')
+    const panelParam = url.searchParams.get('panel')
     
     if (hueParam !== null) {
       const hue = parseInt(hueParam)
@@ -541,12 +640,86 @@ function App() {
       }
     } else if (urlTheme && THEMES[urlTheme]) {
       window.control.setTheme(urlTheme)
+    } else if (url.searchParams.has('ocean')) {
+      // Load custom theme from URL params
+      const customTheme = {
+        ocean: '#' + (url.searchParams.get('ocean') || '2158a0'),
+        country: '#' + (url.searchParams.get('country') || '366b4a'),
+        highlight: '#' + (url.searchParams.get('highlight') || '55b080'),
+        border: '#' + (url.searchParams.get('border') || '4a9eff'),
+        background: '#' + (url.searchParams.get('bg') || '0a0a0a')
+      }
+      
+      const root = document.documentElement
+      root.style.setProperty('--ocean-color', customTheme.ocean)
+      root.style.setProperty('--country-color', customTheme.country)
+      root.style.setProperty('--country-highlight', customTheme.highlight)
+      root.style.setProperty('--country-border', customTheme.border)
+      root.style.setProperty('--globe-background', customTheme.background)
+      root.style.setProperty('--population-color', customTheme.highlight) // Population uses highlight color
+      
+      currentTheme = 'custom'
+      console.log('Applied custom theme from URL')
+      
+      window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: 'custom' } }))
     }
     
     // Apply borders parameter from URL
     if (bordersParam === 'off' || bordersParam === 'false') {
       bordersVisibleRef.current = false
+      setBordersVisible(false)
       console.log('Borders disabled from URL param')
+    }
+    
+    // Apply population parameter from URL
+    if (populationParam === 'off' || populationParam === 'false') {
+      populationVisibleRef.current = false
+      setPopulationVisible(false)
+      console.log('Population disabled from URL param')
+    }
+    
+    // Apply panel parameter from URL
+    if (panelParam === 'off' || panelParam === 'false') {
+      panelVisibleRef.current = false
+      setPanelVisible(false)
+      console.log('Panel disabled from URL param')
+    }
+  }, [])
+  
+  // Listen for theme changes and update state
+  useEffect(() => {
+    const updateThemeName = () => {
+      const url = new URL(window.location)
+      if (url.searchParams.has('hue')) {
+        setCurrentThemeName(`hue-${url.searchParams.get('hue')}`)
+      } else if (url.searchParams.has('ocean')) {
+        setCurrentThemeName('custom')
+      } else {
+        setCurrentThemeName(url.searchParams.get('theme') || 'default')
+      }
+    }
+    
+    const handleThemeChange = () => {
+      updateThemeName()
+      // Update display colors
+      const styles = getComputedStyle(document.documentElement)
+      setDisplayColors({
+        ocean: styles.getPropertyValue('--ocean-color').trim(),
+        country: styles.getPropertyValue('--country-color').trim(),
+        highlight: styles.getPropertyValue('--country-highlight').trim(),
+        border: styles.getPropertyValue('--country-border').trim(),
+        background: styles.getPropertyValue('--globe-background').trim()
+      })
+    }
+    
+    // Update on initial load
+    handleThemeChange()
+    
+    // Listen for theme changes
+    window.addEventListener('themechange', handleThemeChange)
+    
+    return () => {
+      window.removeEventListener('themechange', handleThemeChange)
     }
   }, [])
   
@@ -555,6 +728,7 @@ function App() {
     
     // scene setup
     const scene = new THREE.Scene()
+    sceneRef.current = scene
     const styles = getComputedStyle(document.documentElement)
     const bgColor = styles.getPropertyValue('--globe-background').trim() || '#0a0a0a'
     scene.background = new THREE.Color(bgColor)
@@ -1026,6 +1200,7 @@ function App() {
           
           const pointCloud = new THREE.Points(geometry, material)
           pointCloud.userData = { type: 'population_points' }
+          pointCloud.visible = populationVisibleRef.current
           scene.add(pointCloud)
           
           totalRendered += groupPositions.length
@@ -1100,6 +1275,10 @@ function App() {
     let previousPointerPosition = { x: 0, y: 0 }
     
     const onPointerDown = (e) => {
+      // Ignore if clicking on theme panel or any UI elements
+      if (e.target.closest('.theme-panel') || e.target.closest('.theme-toggle') || e.target.closest('.info-panel')) {
+        return
+      }
       isPointerDown = true
       hasDragged = false
       previousPointerPosition = { x: e.clientX, y: e.clientY }
@@ -1107,6 +1286,10 @@ function App() {
     
     const onPointerMove = (e) => {
       if (isPointerDown) {
+        // Ignore if over theme panel
+        if (e.target.closest('.theme-panel')) {
+          return
+        }
         const deltaX = e.clientX - previousPointerPosition.x
         const deltaY = e.clientY - previousPointerPosition.y
         
@@ -1133,8 +1316,8 @@ function App() {
           
           previousPointerPosition = { x: e.clientX, y: e.clientY }
         }
-      } else {
-        // check for hover
+      } else if (!e.target.closest('.theme-panel') && !e.target.closest('.theme-toggle') && !e.target.closest('.info-panel')) {
+        // check for hover (only if not over UI elements)
         mouse.x = (e.clientX / containerRef.current.clientWidth) * 2 - 1
         mouse.y = -(e.clientY / containerRef.current.clientHeight) * 2 + 1
         
@@ -1152,6 +1335,12 @@ function App() {
     }
     
     const onPointerUp = (e) => {
+      // Ignore if clicking on theme panel or any UI elements
+      if (e.target.closest('.theme-panel') || e.target.closest('.theme-toggle') || e.target.closest('.info-panel')) {
+        isPointerDown = false
+        return
+      }
+      
       if (isPointerDown && !hasDragged) {
         // click detection (only if didn't drag)
         mouse.x = (e.clientX / containerRef.current.clientWidth) * 2 - 1
@@ -1240,8 +1429,34 @@ function App() {
       if (containerRef.current && renderer.domElement) {
         containerRef.current.removeChild(renderer.domElement)
       }
+      sceneRef.current = null
     }
   }, [])
+  
+  // Apply custom theme from color pickers
+  const applyCustomTheme = () => {
+    const root = document.documentElement
+    root.style.setProperty('--ocean-color', customColors.ocean)
+    root.style.setProperty('--country-color', customColors.country)
+    root.style.setProperty('--country-highlight', customColors.highlight)
+    root.style.setProperty('--country-border', customColors.border)
+    root.style.setProperty('--globe-background', customColors.background)
+    root.style.setProperty('--population-color', customColors.highlight) // Population uses highlight color
+    
+    // Update URL params with custom colors
+    const url = new URL(window.location)
+    url.searchParams.delete('theme')
+    url.searchParams.delete('hue')
+    url.searchParams.set('ocean', customColors.ocean.replace('#', ''))
+    url.searchParams.set('country', customColors.country.replace('#', ''))
+    url.searchParams.set('highlight', customColors.highlight.replace('#', ''))
+    url.searchParams.set('border', customColors.border.replace('#', ''))
+    url.searchParams.set('bg', customColors.background.replace('#', ''))
+    window.history.replaceState({}, '', url)
+    
+    window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: 'custom' } }))
+    console.log('Applied custom theme')
+  }
   
   return (
     <div className="app">
@@ -1251,6 +1466,186 @@ function App() {
             <div className="info-title">selected country</div>
             <div className="info-content">{selectedCountry}</div>
           </div>
+        )}
+        
+        {panelVisible && (
+          <>
+            {!themePanelOpen ? (
+              <button className="theme-toggle" onClick={() => setThemePanelOpen(true)}>
+                open controls
+              </button>
+            ) : (
+          <div 
+            className="theme-panel"
+            onPointerDown={(e) => e.stopPropagation()}
+            onPointerMove={(e) => e.stopPropagation()}
+            onPointerUp={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="theme-panel-header">
+              <div className="theme-panel-title">controls</div>
+              <button className="theme-close" onClick={() => setThemePanelOpen(false)}>×</button>
+            </div>
+            
+            <div>
+              <div className="theme-section-title">visibility</div>
+              <div className="visibility-controls">
+                <label className="visibility-item">
+                  <input
+                    type="checkbox"
+                    checked={bordersVisible}
+                    onChange={(e) => window.control?.setBorders(e.target.checked)}
+                  />
+                  <span>borders</span>
+                </label>
+                <label className="visibility-item">
+                  <input
+                    type="checkbox"
+                    checked={populationVisible}
+                    onChange={(e) => window.control?.setPopulation(e.target.checked)}
+                  />
+                  <span>population</span>
+                </label>
+                <label className="visibility-item">
+                  <input
+                    type="checkbox"
+                    checked={panelVisible}
+                    onChange={(e) => window.control?.setPanel(e.target.checked)}
+                  />
+                  <span>controls</span>
+                </label>
+              </div>
+            </div>
+            
+            <div>
+              <div className="theme-section-title">theme</div>
+              <select 
+                className="theme-select"
+                value={THEMES[currentThemeName] ? currentThemeName : ''}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    window.control?.setTheme(e.target.value)
+                  }
+                }}
+              >
+                {!THEMES[currentThemeName] && (
+                  <option value="">{currentThemeName}</option>
+                )}
+                {Object.keys(THEMES).map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+              <div className="theme-preview" style={{ marginTop: 'var(--gap-md)' }}>
+                <div className="theme-swatch" style={{ background: displayColors.ocean }} />
+                <div className="theme-swatch" style={{ background: displayColors.country }} />
+                <div className="theme-swatch" style={{ background: displayColors.highlight }} />
+                <div className="theme-swatch" style={{ background: displayColors.border }} />
+              </div>
+            </div>
+            
+            <div>
+              <div className="theme-section-title">custom</div>
+              <div className="custom-theme">
+                <div className="color-input-group">
+                  <div className="color-input-label">ocean</div>
+                  <div className="color-input-wrapper">
+                    <input
+                      type="color"
+                      className="color-input"
+                      value={customColors.ocean}
+                      onChange={(e) => setCustomColors({ ...customColors, ocean: e.target.value })}
+                    />
+                    <input
+                      type="text"
+                      className="color-hex"
+                      value={customColors.ocean}
+                      onChange={(e) => setCustomColors({ ...customColors, ocean: e.target.value })}
+                    />
+                  </div>
+                </div>
+                
+                <div className="color-input-group">
+                  <div className="color-input-label">country</div>
+                  <div className="color-input-wrapper">
+                    <input
+                      type="color"
+                      className="color-input"
+                      value={customColors.country}
+                      onChange={(e) => setCustomColors({ ...customColors, country: e.target.value })}
+                    />
+                    <input
+                      type="text"
+                      className="color-hex"
+                      value={customColors.country}
+                      onChange={(e) => setCustomColors({ ...customColors, country: e.target.value })}
+                    />
+                  </div>
+                </div>
+                
+                <div className="color-input-group">
+                  <div className="color-input-label">highlight</div>
+                  <div className="color-input-wrapper">
+                    <input
+                      type="color"
+                      className="color-input"
+                      value={customColors.highlight}
+                      onChange={(e) => setCustomColors({ ...customColors, highlight: e.target.value })}
+                    />
+                    <input
+                      type="text"
+                      className="color-hex"
+                      value={customColors.highlight}
+                      onChange={(e) => setCustomColors({ ...customColors, highlight: e.target.value })}
+                    />
+                  </div>
+                </div>
+                
+                <div className="color-input-group">
+                  <div className="color-input-label">border</div>
+                  <div className="color-input-wrapper">
+                    <input
+                      type="color"
+                      className="color-input"
+                      value={customColors.border}
+                      onChange={(e) => setCustomColors({ ...customColors, border: e.target.value })}
+                    />
+                    <input
+                      type="text"
+                      className="color-hex"
+                      value={customColors.border}
+                      onChange={(e) => setCustomColors({ ...customColors, border: e.target.value })}
+                    />
+                  </div>
+                </div>
+                
+                <div className="color-input-group">
+                  <div className="color-input-label">background</div>
+                  <div className="color-input-wrapper">
+                    <input
+                      type="color"
+                      className="color-input"
+                      value={customColors.background}
+                      onChange={(e) => setCustomColors({ ...customColors, background: e.target.value })}
+                    />
+                    <input
+                      type="text"
+                      className="color-hex"
+                      value={customColors.background}
+                      onChange={(e) => setCustomColors({ ...customColors, background: e.target.value })}
+                    />
+                  </div>
+                </div>
+                
+                <button className="apply-custom-btn" onClick={applyCustomTheme}>
+                  apply custom theme
+                </button>
+              </div>
+            </div>
+          </div>
+            )}
+          </>
         )}
       </div>
     </div>

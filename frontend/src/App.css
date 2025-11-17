@@ -67,6 +67,7 @@
   padding: var(--gap-lg);
   min-width: 200px;
   max-width: 300px;
+  cursor: default;
 }
 
 .info-title {
@@ -115,5 +116,218 @@
 .control-btn:hover {
   background: var(--accent);
   border-color: var(--accent);
+}
+
+.theme-toggle {
+  position: absolute;
+  top: var(--gap-lg);
+  right: var(--gap-lg);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  padding: var(--gap-md);
+  cursor: pointer;
+  font-family: var(--font-main);
+  font-size: 12px;
+  text-transform: lowercase;
+}
+
+.theme-toggle:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.theme-panel {
+  position: absolute;
+  top: var(--gap-lg);
+  right: var(--gap-lg);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--gap-lg);
+  width: 320px;
+  max-height: 80vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-lg);
+  cursor: default;
+}
+
+.theme-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.theme-panel-title {
+  font-size: 14px;
+  text-transform: lowercase;
+  font-weight: 500;
+}
+
+.theme-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 20px;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.theme-close:hover {
+  color: var(--text-primary);
+}
+
+.theme-section-title {
+  font-size: 11px;
+  text-transform: lowercase;
+  color: var(--text-secondary);
+  margin-bottom: var(--gap-sm);
+}
+
+.theme-select {
+  width: 100%;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: var(--gap-md);
+  font-family: var(--font-main);
+  font-size: 12px;
+  text-transform: lowercase;
+  cursor: pointer;
+}
+
+.theme-select:hover {
+  border-color: var(--accent);
+}
+
+.theme-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.theme-select option {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  padding: var(--gap-sm);
+}
+
+.theme-preview {
+  display: flex;
+  gap: var(--gap-xs);
+}
+
+.theme-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.visibility-controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+}
+
+.visibility-item {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-sm);
+  font-size: 12px;
+  text-transform: lowercase;
+  cursor: pointer;
+}
+
+.visibility-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.visibility-item span {
+  user-select: none;
+}
+
+.custom-theme {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-md);
+}
+
+.color-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-xs);
+}
+
+.color-input-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: lowercase;
+}
+
+.color-input-wrapper {
+  display: flex;
+  gap: var(--gap-sm);
+  align-items: center;
+}
+
+.color-input {
+  width: 40px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  background: none;
+  padding: 2px;
+}
+
+.color-input::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.color-input::-webkit-color-swatch {
+  border: none;
+  border-radius: 3px;
+}
+
+.color-hex {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--gap-sm);
+  flex: 1;
+  text-transform: uppercase;
+}
+
+.apply-custom-btn {
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: var(--gap-md);
+  cursor: pointer;
+  font-family: var(--font-main);
+  font-size: 12px;
+  text-transform: lowercase;
+  margin-top: var(--gap-sm);
+}
+
+.apply-custom-btn:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
