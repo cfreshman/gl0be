@@ -486,6 +486,7 @@ function App() {
   const panelVisibleRef = useRef(true)
   const milkyWayVisibleRef = useRef(false)
   const rotateEnabledRef = useRef(false)
+  const labelsVisibleRef = useRef(false)
   const [selectedCountry, setSelectedCountry] = useState(null)
   const [hoveredCountry, setHoveredCountry] = useState(null)
   const [themePanelOpen, setThemePanelOpen] = useState(false)
@@ -494,6 +495,7 @@ function App() {
   const [hueValue, setHueValue] = useState(180)
   const [bordersVisible, setBordersVisible] = useState(true)
   const [populationVisible, setPopulationVisible] = useState(true)
+  const [labelsVisible, setLabelsVisible] = useState(false)
   const [milkyWayVisible, setMilkyWayVisible] = useState(false)
   const [rotateEnabled, setRotateEnabled] = useState(false)
   const [displayColors, setDisplayColors] = useState({
@@ -690,6 +692,34 @@ function App() {
         window.control.setPopulation(!populationVisibleRef.current)
       },
       populationVisible: () => populationVisibleRef.current,
+      setLabels: (visible) => {
+        labelsVisibleRef.current = visible
+        setLabelsVisible(visible)
+        
+        // Update URL params
+        const url = new URL(window.location)
+        if (visible) {
+          url.searchParams.set('labels', 'on')
+        } else {
+          url.searchParams.delete('labels')
+        }
+        window.history.replaceState({}, '', url)
+        
+        // Update label visibility
+        if (sceneRef.current) {
+          sceneRef.current.children.forEach(child => {
+            if (child.userData.type === 'country_label') {
+              child.visible = visible
+            }
+          })
+        }
+        
+        console.log(`Labels ${visible ? 'enabled' : 'disabled'}`)
+      },
+      toggleLabels: () => {
+        window.control.setLabels(!labelsVisibleRef.current)
+      },
+      labelsVisible: () => labelsVisibleRef.current,
       setPanel: (visible) => {
         panelVisibleRef.current = visible
         setPanelVisible(visible)
@@ -802,6 +832,7 @@ function App() {
     const urlTheme = url.searchParams.get('theme')
     const bordersParam = url.searchParams.get('borders')
     const populationParam = url.searchParams.get('population')
+    const labelsParam = url.searchParams.get('labels')
     const panelParam = url.searchParams.get('panel')
     const milkyWayParam = url.searchParams.get('milkyway')
     const rotateParam = url.searchParams.get('rotate')
@@ -866,6 +897,13 @@ function App() {
       populationVisibleRef.current = false
       setPopulationVisible(false)
       console.log('Population disabled from URL param')
+    }
+    
+    // Apply labels parameter from URL
+    if (labelsParam === 'on' || labelsParam === 'true') {
+      labelsVisibleRef.current = true
+      setLabelsVisible(true)
+      console.log('Labels enabled from URL param')
     }
     
     // Apply panel parameter from URL
@@ -1028,8 +1066,129 @@ function App() {
     let countries = []
     
     // Helper function to render geometry data
+    // Calculate area of a country from its vertices (sum of triangle areas)
+    const calculateCountryArea = (vertices) => {
+      let totalArea = 0
+      // vertices are already triangulated, so every 3 vertices (9 floats) is a triangle
+      for (let i = 0; i < vertices.length; i += 9) {
+        const v1 = new THREE.Vector3(vertices[i], vertices[i + 1], vertices[i + 2])
+        const v2 = new THREE.Vector3(vertices[i + 3], vertices[i + 4], vertices[i + 5])
+        const v3 = new THREE.Vector3(vertices[i + 6], vertices[i + 7], vertices[i + 8])
+        
+        // Calculate triangle area using cross product
+        const edge1 = new THREE.Vector3().subVectors(v2, v1)
+        const edge2 = new THREE.Vector3().subVectors(v3, v1)
+        const cross = new THREE.Vector3().crossVectors(edge1, edge2)
+        totalArea += cross.length() / 2
+      }
+      return totalArea
+    }
+    
+    // Calculate centroid of a country's vertices
+    const calculateCentroid = (vertices) => {
+      const centroid = new THREE.Vector3()
+      const numVertices = vertices.length / 3
+      
+      for (let i = 0; i < vertices.length; i += 3) {
+        centroid.x += vertices[i]
+        centroid.y += vertices[i + 1]
+        centroid.z += vertices[i + 2]
+      }
+      
+      centroid.divideScalar(numVertices)
+      
+      // Project centroid back onto sphere surface, slightly above borders
+      centroid.normalize().multiplyScalar(globeRadius * 1.01)
+      
+      return centroid
+    }
+    
+    // Create text mesh for country label laying flat on sphere
+    const createTextMesh = (text, position, fontSize) => {
+      const canvas = document.createElement('canvas')
+      const context = canvas.getContext('2d')
+      
+      context.font = `bold ${fontSize}px 'Noto Sans', sans-serif`
+      
+      // Measure text to get exact dimensions
+      const metrics = context.measureText(text)
+      const textWidth = metrics.width
+      const textHeight = fontSize // Approximate text height
+      
+      // Create canvas that fits text exactly with minimal padding
+      const padding = 20
+      canvas.width = Math.ceil(textWidth + padding * 2)
+      canvas.height = Math.ceil(textHeight + padding * 2)
+      
+      // Redraw text after canvas resize
+      context.font = `bold ${fontSize}px 'Noto Sans', sans-serif`
+      context.textAlign = 'center'
+      context.textBaseline = 'middle'
+      
+      // Draw text with shadow for better visibility
+      context.shadowColor = 'rgba(0, 0, 0, 0.8)'
+      context.shadowBlur = 8
+      context.shadowOffsetX = 2
+      context.shadowOffsetY = 2
+      context.fillStyle = 'rgba(255, 255, 255, 1.0)'
+      context.fillText(text, canvas.width / 2, canvas.height / 2)
+      
+      const texture = new THREE.CanvasTexture(canvas)
+      
+      // Create plane geometry that matches canvas proportions
+      // Height is determined by fontSize alone, width scales to fit text
+      const pixelAspect = canvas.width / canvas.height
+      const worldHeight = fontSize / 100 // Height in world units based on font size
+      const worldWidth = worldHeight * pixelAspect // Width scales to maintain text proportions
+      const geometry = new THREE.PlaneGeometry(worldWidth, worldHeight)
+      
+      const material = new THREE.MeshBasicMaterial({ 
+        map: texture,
+        transparent: true,
+        side: THREE.FrontSide,
+        depthTest: true,
+        depthWrite: false
+      })
+      
+      const mesh = new THREE.Mesh(geometry, material)
+      mesh.position.copy(position)
+      
+      // Orient plane to be tangent to sphere surface (laying flat)
+      // The plane's normal should point outward, and "up" should point to north pole
+      const normal = position.clone().normalize()
+      const northPole = new THREE.Vector3(0, 1, 0)
+      
+      // Calculate the "up" direction for the label (toward north pole, projected onto tangent plane)
+      const up = northPole.clone().sub(normal.clone().multiplyScalar(northPole.dot(normal))).normalize()
+      
+      // Create rotation matrix from normal and up vectors
+      const matrix = new THREE.Matrix4()
+      const z = normal.clone()
+      const x = new THREE.Vector3().crossVectors(up, z).normalize()
+      const y = new THREE.Vector3().crossVectors(z, x).normalize()
+      
+      matrix.makeBasis(x, y, z)
+      mesh.quaternion.setFromRotationMatrix(matrix)
+      
+      mesh.userData.type = 'country_label'
+      mesh.userData.initialPosition = position.clone()
+      mesh.userData.initialQuaternion = mesh.quaternion.clone()
+      mesh.visible = labelsVisibleRef.current
+      
+      return mesh
+    }
+    
     const renderGeometry = (data) => {
       const currentColors = getCurrentColors()
+      
+      // Group countries by name to handle multi-part countries
+      const countryGroups = {}
+      data.countries.forEach(countryData => {
+        if (!countryGroups[countryData.name]) {
+          countryGroups[countryData.name] = []
+        }
+        countryGroups[countryData.name].push(countryData.vertices)
+      })
       
       // Recreate meshes from data
       data.countries.forEach(countryData => {
@@ -1047,6 +1206,79 @@ function App() {
         scene.add(mesh)
         countryMeshes.push(mesh)
       })
+      
+      // Create labels - one per country (not per part)
+      const labelData = []
+      Object.entries(countryGroups).forEach(([countryName, parts]) => {
+        // Calculate total area across all parts
+        let totalArea = 0
+        const partData = parts.map(vertices => {
+          const area = calculateCountryArea(vertices)
+          totalArea += area
+          return {
+            vertices,
+            area,
+            centroid: calculateCentroid(vertices)
+          }
+        })
+        
+        // Calculate font size based on total area
+        const areaBasedSize = Math.sqrt(totalArea) * 15
+        const fontSize = Math.max(200, Math.min(1000, areaBasedSize))
+        
+        // Find largest part for label placement
+        const largestPart = partData.reduce((max, part) => 
+          part.area > max.area ? part : max
+        )
+        
+        // Create label with calculated font size, placed at largest part's centroid
+        const label = createTextMesh(countryName, largestPart.centroid, fontSize)
+        
+        // Compute bounding box for collision detection
+        label.geometry.computeBoundingBox()
+        const bbox = new THREE.Box3().setFromObject(label)
+        
+        // Store label data for collision detection
+        labelData.push({
+          name: countryName,
+          area: totalArea,
+          label: label,
+          bbox: bbox
+        })
+      })
+      
+      // Sort by area (largest first) and remove overlapping labels
+      labelData.sort((a, b) => b.area - a.area)
+      const keptLabels = []
+      let removedCount = 0
+      
+      labelData.forEach(current => {
+        let overlaps = false
+        let overlappedWith = null
+        
+        // Check if current label's bounding box intersects with any already-kept labels
+        for (const kept of keptLabels) {
+          if (current.bbox.intersectsBox(kept.bbox)) {
+            overlaps = true
+            overlappedWith = kept.name
+            break
+          }
+        }
+        
+        if (!overlaps) {
+          scene.add(current.label)
+          keptLabels.push(current)
+        } else {
+          if (current.name === 'United States of America' || current.name === 'Brazil' || current.name === 'Russia' || current.name === 'Canada') {
+            console.log(`REMOVED ${current.name} (area ${current.area.toFixed(0)}) - bounding box intersected with ${overlappedWith}`)
+          }
+          removedCount++
+        }
+      })
+      
+      console.log(`Created ${keptLabels.length} labels (removed ${removedCount} due to overlaps)`)
+      
+      console.log(`Created labels for ${Object.keys(countryGroups).length} countries`)
       
       // Recreate borders
       data.borders.forEach(borderData => {
@@ -1073,8 +1305,24 @@ function App() {
       if (initialRotation.x !== 0 || initialRotation.y !== 0) {
         scene.children.forEach(child => {
           if (child !== oceanSphere) {
-            child.rotation.x = initialRotation.x
-            child.rotation.y = initialRotation.y
+            if (child.userData.type === 'country_label') {
+              // Labels need special handling to maintain their tangent orientation
+              const rotationMatrix = new THREE.Matrix4()
+              rotationMatrix.makeRotationFromEuler(new THREE.Euler(initialRotation.x, initialRotation.y, 0, 'XYZ'))
+              
+              // Rotate the initial position
+              const rotatedPos = child.userData.initialPosition.clone()
+              rotatedPos.applyMatrix4(rotationMatrix)
+              child.position.copy(rotatedPos)
+              
+              // Rotate the initial quaternion to maintain orientation
+              const rotatedQuat = child.userData.initialQuaternion.clone()
+              const rotationQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(initialRotation.x, initialRotation.y, 0, 'XYZ'))
+              child.quaternion.copy(rotationQuat.multiply(rotatedQuat))
+            } else {
+              child.rotation.x = initialRotation.x
+              child.rotation.y = initialRotation.y
+            }
           }
         })
       }
@@ -1541,8 +1789,24 @@ function App() {
           // rotate all meshes
           scene.children.forEach(child => {
             if (child !== oceanSphere) {
-              child.rotation.y = oceanSphere.rotation.y
-              child.rotation.x = oceanSphere.rotation.x
+              if (child.userData.type === 'country_label') {
+                // Labels need special handling to maintain their tangent orientation
+                const rotationMatrix = new THREE.Matrix4()
+                rotationMatrix.makeRotationFromEuler(new THREE.Euler(oceanSphere.rotation.x, oceanSphere.rotation.y, 0, 'XYZ'))
+                
+                // Rotate the initial position
+                const rotatedPos = child.userData.initialPosition.clone()
+                rotatedPos.applyMatrix4(rotationMatrix)
+                child.position.copy(rotatedPos)
+                
+                // Rotate the initial quaternion to maintain orientation
+                const rotatedQuat = child.userData.initialQuaternion.clone()
+                const rotationQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(oceanSphere.rotation.x, oceanSphere.rotation.y, 0, 'XYZ'))
+                child.quaternion.copy(rotationQuat.multiply(rotatedQuat))
+              } else {
+                child.rotation.y = oceanSphere.rotation.y
+                child.rotation.x = oceanSphere.rotation.x
+              }
             }
           })
           
@@ -1665,8 +1929,24 @@ function App() {
         // Rotate all other scene elements
         scene.children.forEach(child => {
           if (child !== oceanSphere) {
-            child.rotation.y = oceanSphere.rotation.y
-            child.rotation.x = oceanSphere.rotation.x
+            if (child.userData.type === 'country_label') {
+              // Labels need special handling to maintain their tangent orientation
+              const rotationMatrix = new THREE.Matrix4()
+              rotationMatrix.makeRotationFromEuler(new THREE.Euler(oceanSphere.rotation.x, oceanSphere.rotation.y, 0, 'XYZ'))
+              
+              // Rotate the initial position
+              const rotatedPos = child.userData.initialPosition.clone()
+              rotatedPos.applyMatrix4(rotationMatrix)
+              child.position.copy(rotatedPos)
+              
+              // Rotate the initial quaternion to maintain orientation
+              const rotatedQuat = child.userData.initialQuaternion.clone()
+              const rotationQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(oceanSphere.rotation.x, oceanSphere.rotation.y, 0, 'XYZ'))
+              child.quaternion.copy(rotationQuat.multiply(rotatedQuat))
+            } else {
+              child.rotation.y = oceanSphere.rotation.y
+              child.rotation.x = oceanSphere.rotation.x
+            }
           }
         })
         
@@ -1774,6 +2054,14 @@ function App() {
                     onChange={(e) => window.control?.setPopulation(e.target.checked)}
                   />
                   <span>population</span>
+                </label>
+                <label className="visibility-item">
+                  <input
+                    type="checkbox"
+                    checked={labelsVisible}
+                    onChange={(e) => window.control?.setLabels(e.target.checked)}
+                  />
+                  <span>labels</span>
                 </label>
                 <label className="visibility-item">
                   <input
