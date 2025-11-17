@@ -12,6 +12,12 @@
   --accent-hover: #6ab0ff;
   --border: #2a2a2a;
   
+  /* globe colors */
+  --ocean-color: #2158a0;
+  --country-color: #366b4a;
+  --country-highlight: #55b080;
+  --country-border: #4a9eff;
+  
   /* spacing */
   --gap-xs: 4px;
   --gap-sm: 8px;
