@@ -24,7 +24,7 @@ const THEMES = {
     background: '#0a0a0a',
     population: '#ff00ff'
   },
-  paper: {
+  light: {
     ocean: '#7ba8d1',
     country: '#8fbc8f',
     highlight: '#a8d5a8',
@@ -87,14 +87,6 @@ const THEMES = {
     border: '#66d9ef',
     background: '#001a33',
     population: '#40e0d0'
-  },
-  sunset: {
-    ocean: '#2d4a7c',
-    country: '#8b4513',
-    highlight: '#cd853f',
-    border: '#ff6347',
-    background: '#1a1520',
-    population: '#ff69b4'
   },
   neon: {
     ocean: '#1a1a2e',
@@ -223,7 +215,119 @@ const THEMES = {
     border: '#aaaaaa',
     background: '#f0f0f0',
     population: '#ffffff'
-  }
+  },
+  aurora: {
+    ocean: '#1a2a3a',
+    country: '#134e4a',
+    highlight: '#14b8a6',
+    border: '#a78bfa',
+    background: '#0d0d1a',
+    population: '#86efac'
+  },
+  sepia: {
+    ocean: '#5d4e37',
+    country: '#8b7355',
+    highlight: '#a0826d',
+    border: '#d4a574',
+    background: '#2d2416',
+    population: '#deb887'
+  },
+  coral: {
+    ocean: '#006b7d',
+    country: '#ff6b6b',
+    highlight: '#ff8787',
+    border: '#ffa07a',
+    background: '#001a1f',
+    population: '#ffd700'
+  },
+  copper: {
+    ocean: '#2d4f5c',
+    country: '#b87333',
+    highlight: '#cd853f',
+    border: '#52a19f',
+    background: '#1a1410',
+    population: '#48d1cc'
+  },
+  silk: {
+    ocean: '#a8c4d8',
+    country: '#f5e6d3',
+    highlight: '#fff4e6',
+    border: '#d4af7a',
+    background: '#f9f6f2',
+    population: '#ffa07a'
+  },
+  ember: {
+    ocean: '#1a0f0a',
+    country: '#4a1a0f',
+    highlight: '#ff4500',
+    border: '#ff6b35',
+    background: '#0d0604',
+    population: '#ffa500'
+  },
+  cosmic: {
+    ocean: '#1a0a2e',
+    country: '#3d2c5e',
+    highlight: '#8b5cf6',
+    border: '#c084fc',
+    background: '#0a0514',
+    population: '#ec4899'
+  },
+  blueprint: {
+    ocean: '#0a4c95',
+    country: '#1e6bb8',
+    highlight: '#5fa8d3',
+    border: '#ffffff',
+    background: '#1a2332',
+    population: '#00d9ff'
+  },
+  mint: {
+    ocean: '#5ab8a0',
+    country: '#98d8c8',
+    highlight: '#b8e6d5',
+    border: '#f1f8f4',
+    background: '#f5fffa',
+    population: '#2dd4bf'
+  },
+  jade: {
+    ocean: '#1a4d3a',
+    country: '#2e7d5e',
+    highlight: '#3fa878',
+    border: '#5fd39a',
+    background: '#0a1410',
+    population: '#7fffd4'
+  },
+  vaporwave: {
+    ocean: '#ff71ce',
+    country: '#01cdfe',
+    highlight: '#05ffa1',
+    border: '#b967ff',
+    background: '#0a0320',
+    population: '#fffb96'
+  },
+  moon: {
+    ocean: '#2d3748',
+    country: '#4a5568',
+    highlight: '#718096',
+    border: '#cbd5e0',
+    background: '#1a202c',
+    population: '#e2e8f0'
+  },
+  moss: {
+    ocean: '#3e2723',
+    country: '#4a5d23',
+    highlight: '#6b8e23',
+    border: '#8fbc8f',
+    background: '#1a120d',
+    population: '#98fb98'
+  },
+  ink: {
+    ocean: '#2c2c2c',
+    country: '#1a1a1a',
+    highlight: '#3d3d3d',
+    border: '#808080',
+    background: '#f5f5f0',
+    population: '#d32f2f'
+  },
 }
 
 // Helper to convert HSL to hex
@@ -387,6 +491,7 @@ function App() {
   const [themePanelOpen, setThemePanelOpen] = useState(false)
   const [panelVisible, setPanelVisible] = useState(true)
   const [currentThemeName, setCurrentThemeName] = useState('default')
+  const [hueValue, setHueValue] = useState(180)
   const [bordersVisible, setBordersVisible] = useState(true)
   const [populationVisible, setPopulationVisible] = useState(true)
   const [milkyWayVisible, setMilkyWayVisible] = useState(false)
@@ -511,6 +616,8 @@ function App() {
         root.style.setProperty('--population-color', theme.population)
         
         currentTheme = `hue-${hue}`
+        setHueValue(hue)
+        setCurrentThemeName('hue')
         console.log(`Hue theme set to: ${hue}°`)
         
         // Update URL params
@@ -713,6 +820,8 @@ function App() {
         root.style.setProperty('--population-color', theme.population)
         
         currentTheme = `hue-${hue}`
+        setHueValue(hue)
+        setCurrentThemeName('hue')
         console.log(`Applied hue theme: ${hue}°`)
         
         window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: currentTheme } }))
@@ -789,7 +898,11 @@ function App() {
     const updateThemeName = () => {
       const url = new URL(window.location)
       if (url.searchParams.has('hue')) {
-        setCurrentThemeName(`hue-${url.searchParams.get('hue')}`)
+        setCurrentThemeName('hue')
+        const hue = parseInt(url.searchParams.get('hue'))
+        if (!isNaN(hue)) {
+          setHueValue(hue)
+        }
       } else if (url.searchParams.has('ocean')) {
         setCurrentThemeName('custom')
       } else {
@@ -1534,14 +1647,20 @@ function App() {
     }
     window.addEventListener('resize', handleResize)
     
-    // animation loop
-    const animate = () => {
+    // animation loop with delta time for consistent rotation speed
+    let lastTime = performance.now()
+    let lastSaveTime = 0
+    const animate = (currentTime) => {
       requestAnimationFrame(animate)
       
-      // Auto-rotate if enabled
+      // Calculate delta time in seconds
+      const deltaTime = (currentTime - lastTime) / 1000
+      lastTime = currentTime
+      
+      // Auto-rotate if enabled (time-based for consistent speed across devices)
       if (rotateEnabledRef.current) {
-        const rotationSpeed = 0.00015
-        oceanSphere.rotation.y += rotationSpeed
+        const rotationSpeed = 0.02 // radians per second
+        oceanSphere.rotation.y += rotationSpeed * deltaTime
         
         // Rotate all other scene elements
         scene.children.forEach(child => {
@@ -1551,16 +1670,19 @@ function App() {
           }
         })
         
-        // Update stored rotation
-        localStorage.setItem('globeRotation', JSON.stringify({
-          x: oceanSphere.rotation.x,
-          y: oceanSphere.rotation.y
-        }))
+        // Update stored rotation (throttle to once per second to avoid excessive writes)
+        if (currentTime - lastSaveTime > 1000) {
+          localStorage.setItem('globeRotation', JSON.stringify({
+            x: oceanSphere.rotation.x,
+            y: oceanSphere.rotation.y
+          }))
+          lastSaveTime = currentTime
+        }
       }
       
       renderer.render(scene, camera)
     }
-    animate()
+    animate(performance.now())
     
     // cleanup
     return () => {
@@ -1684,22 +1806,49 @@ function App() {
               <div className="theme-section-title">theme</div>
               <select 
                 className="theme-select"
-                value={THEMES[currentThemeName] ? currentThemeName : ''}
+                value={THEMES[currentThemeName] ? currentThemeName : (currentThemeName === 'hue' ? 'hue' : '')}
                 onChange={(e) => {
-                  if (e.target.value) {
+                  if (e.target.value === 'hue') {
+                    setCurrentThemeName('hue')
+                    window.control?.setHue(hueValue)
+                  } else if (e.target.value) {
                     window.control?.setTheme(e.target.value)
                   }
                 }}
               >
-                {!THEMES[currentThemeName] && (
+                {!THEMES[currentThemeName] && currentThemeName !== 'hue' && (
                   <option value="">{currentThemeName}</option>
                 )}
-                {Object.keys(THEMES).map((name) => (
-                  <option key={name} value={name}>
-                    {name}
-                  </option>
-                ))}
+                {Object.keys(THEMES).flatMap((name, index) => 
+                  index === 0 
+                    ? [
+                        <option key={name} value={name}>{name}</option>,
+                        <option key="hue" value="hue">hue</option>
+                      ]
+                    : <option key={name} value={name}>{name}</option>
+                )}
               </select>
+              
+              {currentThemeName === 'hue' && (
+                <div style={{ marginTop: 'var(--gap-md)' }}>
+                  <div className="color-input-group">
+                    <div className="color-input-label">hue: {hueValue}°</div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="360"
+                      value={hueValue}
+                      onChange={(e) => {
+                        const newHue = parseInt(e.target.value)
+                        setHueValue(newHue)
+                        window.control?.setHue(newHue)
+                      }}
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+                </div>
+              )}
+              
               <div className="theme-preview" style={{ marginTop: 'var(--gap-md)' }}>
                 <div className="theme-swatch" style={{ background: displayColors.ocean }} />
                 <div className="theme-swatch" style={{ background: displayColors.country }} />
