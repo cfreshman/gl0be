@@ -359,6 +359,7 @@ function getCountryAtPoint(lat, lon, countries) {
 
 function App() {
   const containerRef = useRef(null)
+  const bordersVisibleRef = useRef(true)
   const [selectedCountry, setSelectedCountry] = useState(null)
   const [hoveredCountry, setHoveredCountry] = useState(null)
   
@@ -471,7 +472,32 @@ function App() {
         
         // Trigger a re-render by dispatching a custom event
         window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: currentTheme } }))
-      }
+      },
+      setBorders: (visible) => {
+        bordersVisibleRef.current = visible
+        
+        // Update URL params
+        const url = new URL(window.location)
+        if (visible) {
+          url.searchParams.delete('borders')
+        } else {
+          url.searchParams.set('borders', 'off')
+        }
+        window.history.replaceState({}, '', url)
+        
+        // Update border visibility
+        scene.children.forEach(child => {
+          if (child.userData.type === 'border') {
+            child.visible = visible
+          }
+        })
+        
+        console.log(`Borders ${visible ? 'enabled' : 'disabled'}`)
+      },
+      toggleBorders: () => {
+        window.control.setBorders(!bordersVisibleRef.current)
+      },
+      bordersVisible: () => bordersVisibleRef.current
     }
     
     console.log('Debug controls available:')
@@ -482,12 +508,16 @@ function App() {
     console.log('  control.currentTheme() - get current theme')
     console.log('  control.nextTheme() - cycle to next theme')
     console.log('  control.prevTheme() - cycle to previous theme')
+    console.log('  control.setBorders(true/false) - show/hide borders')
+    console.log('  control.toggleBorders() - toggle borders')
     console.log('  or use ?hue=0-360 in URL for custom hue theme')
+    console.log('  or use ?borders=off in URL to hide borders')
     
-    // Check for hue or theme in URL params and apply it
+    // Check for hue, theme, or borders in URL params and apply it
     const url = new URL(window.location)
     const hueParam = url.searchParams.get('hue')
     const urlTheme = url.searchParams.get('theme')
+    const bordersParam = url.searchParams.get('borders')
     
     if (hueParam !== null) {
       const hue = parseInt(hueParam)
@@ -511,6 +541,12 @@ function App() {
       }
     } else if (urlTheme && THEMES[urlTheme]) {
       window.control.setTheme(urlTheme)
+    }
+    
+    // Apply borders parameter from URL
+    if (bordersParam === 'off' || bordersParam === 'false') {
+      bordersVisibleRef.current = false
+      console.log('Borders disabled from URL param')
     }
   }, [])
   
@@ -616,6 +652,8 @@ function App() {
           opacity: 0.5
         })
         const borderLine = new THREE.LineLoop(borderGeometry, borderMaterial)
+        borderLine.userData.type = 'border'
+        borderLine.visible = bordersVisibleRef.current
         scene.add(borderLine)
       })
       
@@ -849,6 +887,8 @@ function App() {
                 opacity: 0.5
               })
               const borderLine = new THREE.LineLoop(borderGeometry, borderMaterial)
+              borderLine.userData.type = 'border'
+              borderLine.visible = bordersVisibleRef.current
               scene.add(borderLine)
               
               // Store for caching
