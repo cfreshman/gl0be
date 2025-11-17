@@ -376,9 +376,12 @@ function getCountryAtPoint(lat, lon, countries) {
 function App() {
   const containerRef = useRef(null)
   const sceneRef = useRef(null)
+  const rendererRef = useRef(null)
   const bordersVisibleRef = useRef(true)
   const populationVisibleRef = useRef(true)
   const panelVisibleRef = useRef(true)
+  const milkyWayVisibleRef = useRef(false)
+  const rotateEnabledRef = useRef(false)
   const [selectedCountry, setSelectedCountry] = useState(null)
   const [hoveredCountry, setHoveredCountry] = useState(null)
   const [themePanelOpen, setThemePanelOpen] = useState(false)
@@ -386,6 +389,8 @@ function App() {
   const [currentThemeName, setCurrentThemeName] = useState('default')
   const [bordersVisible, setBordersVisible] = useState(true)
   const [populationVisible, setPopulationVisible] = useState(true)
+  const [milkyWayVisible, setMilkyWayVisible] = useState(false)
+  const [rotateEnabled, setRotateEnabled] = useState(false)
   const [displayColors, setDisplayColors] = useState({
     ocean: '#2158a0',
     country: '#366b4a',
@@ -596,7 +601,67 @@ function App() {
       togglePanel: () => {
         window.control.setPanel(!panelVisibleRef.current)
       },
-      panelVisible: () => panelVisibleRef.current
+      panelVisible: () => panelVisibleRef.current,
+      setMilkyWay: (visible) => {
+        milkyWayVisibleRef.current = visible
+        setMilkyWayVisible(visible)
+        
+        // Update URL params
+        const url = new URL(window.location)
+        if (visible) {
+          url.searchParams.set('milkyway', 'on')
+        } else {
+          url.searchParams.delete('milkyway')
+        }
+        window.history.replaceState({}, '', url)
+        
+        // Update Milky Way visibility via CSS class
+        if (containerRef.current) {
+          if (visible) {
+            containerRef.current.classList.add('milky-way-bg')
+          } else {
+            containerRef.current.classList.remove('milky-way-bg')
+          }
+        }
+        
+        // Update scene background and renderer clear color
+        if (sceneRef.current && rendererRef.current) {
+          if (visible) {
+            sceneRef.current.background = null
+            rendererRef.current.setClearColor(0x000000, 0) // Transparent
+          } else {
+            const styles = getComputedStyle(document.documentElement)
+            const bgColor = styles.getPropertyValue('--globe-background').trim() || '#0a0a0a'
+            sceneRef.current.background = new THREE.Color(bgColor)
+            rendererRef.current.setClearColor(bgColor, 1) // Opaque
+          }
+        }
+        
+        console.log(`Milky Way ${visible ? 'enabled' : 'disabled'}`)
+      },
+      toggleMilkyWay: () => {
+        window.control.setMilkyWay(!milkyWayVisibleRef.current)
+      },
+      milkyWayVisible: () => milkyWayVisibleRef.current,
+      setRotate: (enabled) => {
+        rotateEnabledRef.current = enabled
+        setRotateEnabled(enabled)
+        
+        // Update URL params
+        const url = new URL(window.location)
+        if (enabled) {
+          url.searchParams.set('rotate', 'on')
+        } else {
+          url.searchParams.delete('rotate')
+        }
+        window.history.replaceState({}, '', url)
+        
+        console.log(`Auto-rotate ${enabled ? 'enabled' : 'disabled'}`)
+      },
+      toggleRotate: () => {
+        window.control.setRotate(!rotateEnabledRef.current)
+      },
+      rotateEnabled: () => rotateEnabledRef.current
     }
     
     console.log('Debug controls available:')
@@ -613,10 +678,16 @@ function App() {
     console.log('  control.togglePopulation() - toggle population')
     console.log('  control.setPanel(true/false) - show/hide panel')
     console.log('  control.togglePanel() - toggle panel')
+    console.log('  control.setMilkyWay(true/false) - show/hide milky way')
+    console.log('  control.toggleMilkyWay() - toggle milky way')
+    console.log('  control.setRotate(true/false) - enable/disable auto-rotate')
+    console.log('  control.toggleRotate() - toggle auto-rotate')
     console.log('  or use ?hue=0-360 in URL for custom hue theme')
     console.log('  or use ?borders=off in URL to hide borders')
     console.log('  or use ?population=off in URL to hide population')
     console.log('  or use ?panel=off in URL to hide panel')
+    console.log('  or use ?milkyway=on in URL to show milky way')
+    console.log('  or use ?rotate=on in URL to enable auto-rotate')
     
     // Check for hue, theme, borders, or population in URL params and apply it
     const url = new URL(window.location)
@@ -625,6 +696,8 @@ function App() {
     const bordersParam = url.searchParams.get('borders')
     const populationParam = url.searchParams.get('population')
     const panelParam = url.searchParams.get('panel')
+    const milkyWayParam = url.searchParams.get('milkyway')
+    const rotateParam = url.searchParams.get('rotate')
     
     if (hueParam !== null) {
       const hue = parseInt(hueParam)
@@ -692,6 +765,23 @@ function App() {
       setPanelVisible(false)
       console.log('Panel disabled from URL param')
     }
+    
+    // Apply milky way parameter from URL
+    if (milkyWayParam === 'on' || milkyWayParam === 'true') {
+      milkyWayVisibleRef.current = true
+      setMilkyWayVisible(true)
+      if (containerRef.current) {
+        containerRef.current.classList.add('milky-way-bg')
+      }
+      console.log('Milky Way enabled from URL param')
+    }
+    
+    // Apply rotate parameter from URL
+    if (rotateParam === 'on' || rotateParam === 'true') {
+      rotateEnabledRef.current = true
+      setRotateEnabled(true)
+      console.log('Auto-rotate enabled from URL param')
+    }
   }, [])
   
   // Listen for theme changes and update state
@@ -737,9 +827,15 @@ function App() {
     // scene setup
     const scene = new THREE.Scene()
     sceneRef.current = scene
-    const styles = getComputedStyle(document.documentElement)
-    const bgColor = styles.getPropertyValue('--globe-background').trim() || '#0a0a0a'
-    scene.background = new THREE.Color(bgColor)
+    
+    // Set background based on milky way visibility
+    if (!milkyWayVisibleRef.current) {
+      const styles = getComputedStyle(document.documentElement)
+      const bgColor = styles.getPropertyValue('--globe-background').trim() || '#0a0a0a'
+      scene.background = new THREE.Color(bgColor)
+    } else {
+      scene.background = null
+    }
     
     // camera setup
     const camera = new THREE.PerspectiveCamera(
@@ -751,9 +847,16 @@ function App() {
     camera.position.z = 300
     
     // renderer setup
-    const renderer = new THREE.WebGLRenderer({ antialias: true })
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
+    rendererRef.current = renderer
     renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    
+    // Set clear color based on milky way visibility
+    if (milkyWayVisibleRef.current) {
+      renderer.setClearColor(0x000000, 0) // Transparent
+    }
+    
     containerRef.current.appendChild(renderer.domElement)
     
     // Helper to get current colors from CSS variables
@@ -1256,8 +1359,10 @@ function App() {
       const newBorderColor = new THREE.Color(styles.getPropertyValue('--country-border').trim())
       const newBackgroundColor = new THREE.Color(styles.getPropertyValue('--globe-background').trim() || '#0a0a0a')
       
-      // Update scene background
-      scene.background.copy(newBackgroundColor)
+      // Update scene background (only if milky way is not visible)
+      if (!milkyWayVisibleRef.current) {
+        scene.background.copy(newBackgroundColor)
+      }
       
       // Update ocean sphere
       oceanSphere.material.color.copy(newOceanColor)
@@ -1432,6 +1537,27 @@ function App() {
     // animation loop
     const animate = () => {
       requestAnimationFrame(animate)
+      
+      // Auto-rotate if enabled
+      if (rotateEnabledRef.current) {
+        const rotationSpeed = 0.00015
+        oceanSphere.rotation.y += rotationSpeed
+        
+        // Rotate all other scene elements
+        scene.children.forEach(child => {
+          if (child !== oceanSphere) {
+            child.rotation.y = oceanSphere.rotation.y
+            child.rotation.x = oceanSphere.rotation.x
+          }
+        })
+        
+        // Update stored rotation
+        localStorage.setItem('globeRotation', JSON.stringify({
+          x: oceanSphere.rotation.x,
+          y: oceanSphere.rotation.y
+        }))
+      }
+      
       renderer.render(scene, camera)
     }
     animate()
@@ -1450,6 +1576,7 @@ function App() {
         containerRef.current.removeChild(renderer.domElement)
       }
       sceneRef.current = null
+      rendererRef.current = null
     }
   }, [])
   
@@ -1533,6 +1660,22 @@ function App() {
                     onChange={(e) => window.control?.setPanel(e.target.checked)}
                   />
                   <span>controls</span>
+                </label>
+                <label className="visibility-item">
+                  <input
+                    type="checkbox"
+                    checked={milkyWayVisible}
+                    onChange={(e) => window.control?.setMilkyWay(e.target.checked)}
+                  />
+                  <span>milky way</span>
+                </label>
+                <label className="visibility-item">
+                  <input
+                    type="checkbox"
+                    checked={rotateEnabled}
+                    onChange={(e) => window.control?.setRotate(e.target.checked)}
+                  />
+                  <span>auto-rotate</span>
                 </label>
               </div>
             </div>
