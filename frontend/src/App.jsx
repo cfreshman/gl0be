@@ -1065,6 +1065,28 @@ function App() {
     const countryMeshes = []
     let countries = []
     
+    // Helper function to calculate luminance of a color
+    const getLuminance = (hexColor) => {
+      // Handle invalid input - default to dark (use white text)
+      if (!hexColor || typeof hexColor !== 'string') {
+        return 0
+      }
+      
+      // Remove # if present
+      const hex = hexColor.replace('#', '')
+      
+      // Convert to RGB
+      const r = parseInt(hex.substring(0, 2), 16) / 255
+      const g = parseInt(hex.substring(2, 4), 16) / 255
+      const b = parseInt(hex.substring(4, 6), 16) / 255
+      
+      // Apply gamma correction
+      const toLinear = (c) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
+      
+      // Calculate relative luminance
+      return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b)
+    }
+    
     // Helper function to render geometry data
     // Calculate area of a country from its vertices (sum of triangle areas)
     const calculateCountryArea = (vertices) => {
@@ -1125,12 +1147,29 @@ function App() {
       context.textAlign = 'center'
       context.textBaseline = 'middle'
       
-      // Draw text with shadow for better visibility
-      context.shadowColor = 'rgba(0, 0, 0, 0.8)'
-      context.shadowBlur = 8
-      context.shadowOffsetX = 2
-      context.shadowOffsetY = 2
-      context.fillStyle = 'rgba(255, 255, 255, 1.0)'
+      // Determine text color based on land color luminance
+      const currentColors = getCurrentColors()
+      const countryColorHex = '#' + currentColors.country.getHexString()
+      const landLuminance = getLuminance(countryColorHex)
+      
+      // If land is light (luminance > 0.5), use black text with white shadow
+      // Otherwise use white text with black shadow
+      const isLightBackground = landLuminance > 0.5
+      
+      if (isLightBackground) {
+        context.shadowColor = 'rgba(255, 255, 255, 0.8)'
+        context.shadowBlur = 8
+        context.shadowOffsetX = 2
+        context.shadowOffsetY = 2
+        context.fillStyle = 'rgba(0, 0, 0, 1.0)'
+      } else {
+        context.shadowColor = 'rgba(0, 0, 0, 0.8)'
+        context.shadowBlur = 8
+        context.shadowOffsetX = 2
+        context.shadowOffsetY = 2
+        context.fillStyle = 'rgba(255, 255, 255, 1.0)'
+      }
+      
       context.fillText(text, canvas.width / 2, canvas.height / 2)
       
       const texture = new THREE.CanvasTexture(canvas)
@@ -1171,6 +1210,8 @@ function App() {
       mesh.quaternion.setFromRotationMatrix(matrix)
       
       mesh.userData.type = 'country_label'
+      mesh.userData.text = text
+      mesh.userData.fontSize = fontSize
       mesh.userData.initialPosition = position.clone()
       mesh.userData.initialQuaternion = mesh.quaternion.clone()
       mesh.visible = labelsVisibleRef.current
@@ -1746,6 +1787,41 @@ function App() {
         if (child.type === 'Points' && child.userData.type === 'population_points') {
           child.material.color.copy(newCountryHighlight)
         }
+      })
+      
+      // Regenerate labels with new text color based on theme
+      const labelsToRegenerate = []
+      scene.children.forEach(child => {
+        if (child.userData.type === 'country_label') {
+          labelsToRegenerate.push({
+            text: child.userData.text,
+            fontSize: child.userData.fontSize,
+            initialPosition: child.userData.initialPosition,
+            initialQuaternion: child.userData.initialQuaternion,
+            visible: child.visible
+          })
+        }
+      })
+      
+      // Remove old labels
+      scene.children = scene.children.filter(child => child.userData.type !== 'country_label')
+      
+      // Create new labels with updated colors
+      labelsToRegenerate.forEach(labelData => {
+        const newLabel = createTextMesh(labelData.text, labelData.initialPosition, labelData.fontSize)
+        newLabel.visible = labelData.visible
+        
+        // Apply current globe rotation to the label
+        const rotationMatrix = new THREE.Matrix4()
+        rotationMatrix.makeRotationFromEuler(new THREE.Euler(oceanSphere.rotation.x, oceanSphere.rotation.y, 0, 'XYZ'))
+        
+        const rotatedPos = labelData.initialPosition.clone().applyMatrix4(rotationMatrix)
+        newLabel.position.copy(rotatedPos)
+        
+        const globeQuaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(oceanSphere.rotation.x, oceanSphere.rotation.y, 0, 'XYZ'))
+        newLabel.quaternion.copy(globeQuaternion).multiply(labelData.initialQuaternion)
+        
+        scene.add(newLabel)
       })
     }
     
