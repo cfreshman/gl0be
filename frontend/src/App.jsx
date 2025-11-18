@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
+import { Line2 } from 'three/examples/jsm/lines/Line2.js'
+import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js'
+import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js'
 import Delaunator from 'delaunator'
 import './App.css'
 
@@ -15,6 +18,26 @@ const THEMES = {
     border: '#4a9eff',
     background: '#0a0a0a',
     population: '#ffcc00'
+  },
+  classic: {
+    ocean: '#d4e5f0',
+    country: '#e8d4b8', // This will be overridden per-country
+    highlight: '#948961',
+    border: '#bca78f',
+    background: '#f7f3e9',
+    population: '#8b4513',
+    borderWidth: 2,
+    labelColor: '#2d2d2d'
+  },
+  'dark-classic': {
+    ocean: '#1a2633',
+    country: '#d2bb98', // This will be overridden per-country
+    highlight: '#d4af37',
+    border: '#d4c5a0',
+    background: '#0d0f12',
+    population: '#d4af37',
+    borderWidth: 2,
+    labelColor: '#e8d4c0'
   },
   vibrant: {
     ocean: '#81abe1',
@@ -363,6 +386,49 @@ function generateHueTheme(hue) {
   }
 }
 
+// Hash country name to generate consistent color (for classic map theme)
+function hashCountryToColor(countryName, isDark = false) {
+  // Simple hash function
+  let hash = 0
+  for (let i = 0; i < countryName.length; i++) {
+    hash = countryName.charCodeAt(i) + ((hash << 5) - hash)
+    hash = hash & hash // Convert to 32bit integer
+  }
+  
+  // Classic National Geographic map palette - curated hues that work together
+  // Using earthy, muted colors typical of vintage cartography
+  const classicMapHues = [
+    30,   // Orange/tan
+    45,   // Gold/yellow
+    60,   // Yellow-green
+    120,  // Green
+    150,  // Teal
+    180,  // Cyan
+    210,  // Light blue
+    280,  // Purple
+    300,  // Magenta
+    330,  // Pink/rose
+    15,   // Coral
+    90    // Lime green
+  ]
+  
+  // Pick a hue from the curated palette
+  const hue = classicMapHues[Math.abs(hash) % classicMapHues.length]
+  
+  // Dark backgrounds need richer, deeper colors like vintage night maps
+  // Light backgrounds need more colorful pastels
+  let saturation, lightness
+  if (isDark) {
+    saturation = 40 + (Math.abs(hash >> 8) % 20) // 40-60% saturation (rich but not garish)
+    lightness = 50 + (Math.abs(hash >> 16) % 15)  // 50-65% lightness (deeper vintage tones)
+  } else {
+    saturation = 45 + (Math.abs(hash >> 8) % 15) // 45-60% saturation (colorful but not garish)
+    lightness = 65 + (Math.abs(hash >> 16) % 10)  // 65-75% lightness (soft but visible)
+  }
+  
+  return hslToHex(hue, saturation, lightness)
+}
+
 // IndexedDB helpers for large data storage
 const DB_NAME = 'globeDB'
 const DB_VERSION = 1
@@ -506,6 +572,9 @@ function App() {
   const [labelsVisible, setLabelsVisible] = useState(false)
   const [milkyWayVisible, setMilkyWayVisible] = useState(false)
   const [rotateEnabled, setRotateEnabled] = useState(false)
+  
+  // Refs for accessing state in Three.js context
+  const currentThemeNameRef = useRef('default')
   const [displayColors, setDisplayColors] = useState({
     ocean: '#2158a0',
     country: '#366b4a',
@@ -570,6 +639,8 @@ function App() {
         root.style.setProperty('--population-color', theme.population)
         
         currentTheme = themeName
+        currentThemeNameRef.current = themeName
+        setCurrentThemeName(themeName)
         console.log(`Theme set to: ${themeName}`)
         
         // Update URL params
@@ -626,6 +697,7 @@ function App() {
         root.style.setProperty('--population-color', theme.population)
         
         currentTheme = `hue-${hue}`
+        currentThemeNameRef.current = 'hue'
         setHueValue(hue)
         setCurrentThemeName('hue')
         console.log(`Hue theme set to: ${hue}°`)
@@ -859,6 +931,7 @@ function App() {
         root.style.setProperty('--population-color', theme.population)
         
         currentTheme = `hue-${hue}`
+        currentThemeNameRef.current = 'hue'
         setHueValue(hue)
         setCurrentThemeName('hue')
         console.log(`Applied hue theme: ${hue}°`)
@@ -888,6 +961,8 @@ function App() {
       root.style.setProperty('--population-color', customTheme.highlight) // Population uses highlight color
       
       currentTheme = 'custom'
+      currentThemeNameRef.current = 'custom'
+      setCurrentThemeName('custom')
       console.log('Applied custom theme from URL')
       
       window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: 'custom' } }))
@@ -939,20 +1014,29 @@ function App() {
     }
   }, [])
   
+  // Sync ref with state to prevent stale closures
+  useEffect(() => {
+    currentThemeNameRef.current = currentThemeName
+  }, [currentThemeName])
+  
   // Listen for theme changes and update state
   useEffect(() => {
     const updateThemeName = () => {
       const url = new URL(window.location)
       if (url.searchParams.has('hue')) {
+        currentThemeNameRef.current = 'hue'
         setCurrentThemeName('hue')
         const hue = parseInt(url.searchParams.get('hue'))
         if (!isNaN(hue)) {
           setHueValue(hue)
         }
       } else if (url.searchParams.has('ocean')) {
+        currentThemeNameRef.current = 'custom'
         setCurrentThemeName('custom')
       } else {
-        setCurrentThemeName(url.searchParams.get('theme') || 'default')
+        const themeName = url.searchParams.get('theme') || 'default'
+        currentThemeNameRef.current = themeName
+        setCurrentThemeName(themeName)
       }
     }
     
@@ -1029,6 +1113,15 @@ function App() {
         background: new THREE.Color(styles.getPropertyValue('--globe-background').trim() || '#0a0a0a'),
         population: new THREE.Color(styles.getPropertyValue('--population-color').trim() || '#ffcc00')
       }
+    }
+    
+    const getCurrentBorderWidth = () => {
+      // Get borderWidth from current theme, default to 1
+      const themeName = currentThemeNameRef.current
+      if (themeName && THEMES[themeName] && THEMES[themeName].borderWidth) {
+        return THEMES[themeName].borderWidth
+      }
+      return 1
     }
     
     // get initial colors from CSS variables
@@ -1128,13 +1221,13 @@ function App() {
       centroid.divideScalar(numVertices)
       
       // Project centroid back onto sphere surface, slightly above borders
-      centroid.normalize().multiplyScalar(globeRadius * 1.01)
+      centroid.normalize().multiplyScalar(globeRadius * 1.02)
       
       return centroid
     }
     
     // Create text mesh for country label laying flat on sphere
-    const createTextMesh = (text, position, fontSize) => {
+    const createTextMesh = (text, position, fontSize, countryName = null) => {
       const canvas = document.createElement('canvas')
       const context = canvas.getContext('2d')
       
@@ -1155,32 +1248,56 @@ function App() {
       context.textAlign = 'center'
       context.textBaseline = 'middle'
       
-      // Determine text color based on land color luminance
-      const currentColors = getCurrentColors()
-      const countryColorHex = '#' + currentColors.country.getHexString()
-      const landLuminance = getLuminance(countryColorHex)
+      // Check if theme has custom label color
+      const themeName = currentThemeNameRef.current
+      const theme = THEMES[themeName]
+      let labelColor, shadowColor, labelLuminance
       
-      // If land is light (luminance > 0.5), use black text with white shadow
-      // Otherwise use white text with black shadow
-      const isLightBackground = landLuminance > 0.5
-      
-      if (isLightBackground) {
-        context.shadowColor = 'rgba(255, 255, 255, 0.8)'
-        context.shadowBlur = 8
-        context.shadowOffsetX = 2
-        context.shadowOffsetY = 2
-        context.fillStyle = 'rgba(0, 0, 0, 1.0)'
+      if (theme && theme.labelColor) {
+        // Use theme's custom label color - convert hex to rgba with full opacity
+        const hex = theme.labelColor.replace('#', '')
+        const r = parseInt(hex.substring(0, 2), 16)
+        const g = parseInt(hex.substring(2, 4), 16)
+        const b = parseInt(hex.substring(4, 6), 16)
+        labelColor = `rgba(${r}, ${g}, ${b}, 1.0)`
+        
+        // Shadow is opposite of label based on luminance
+        labelLuminance = getLuminance(theme.labelColor)
+        shadowColor = labelLuminance > 0.35 ? 'rgba(0, 0, 0, 0.8)' : 'rgba(255, 255, 255, 0.8)'
       } else {
-        context.shadowColor = 'rgba(0, 0, 0, 0.8)'
-        context.shadowBlur = 8
-        context.shadowOffsetX = 2
-        context.shadowOffsetY = 2
-        context.fillStyle = 'rgba(255, 255, 255, 1.0)'
+        // Determine text color based on theme's overall land color luminance
+        // For consistent labeling, don't switch per-country even in classic theme
+        const currentColors = getCurrentColors()
+        const countryColorHex = '#' + currentColors.country.getHexString()
+        const landLuminance = getLuminance(countryColorHex)
+        
+        // If land is light (luminance > threshold), use black text with white shadow
+        // Otherwise use white text with black shadow
+        const isLightBackground = landLuminance > 0.35
+        labelColor = isLightBackground ? 'rgba(0, 0, 0, 1.0)' : 'rgba(255, 255, 255, 1.0)'
+        shadowColor = isLightBackground ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.8)'
+        labelLuminance = isLightBackground ? 0 : 1 // Approximate for blur calculation
       }
       
+      // For dark text, reduce or eliminate shadow to prevent lightening
+      if (labelLuminance < 0.35) {
+        // Dark text - use subtle dark shadow instead of white shadow
+        context.shadowColor = 'rgba(0, 0, 0, 0.3)'
+        context.shadowBlur = 2
+        context.shadowOffsetX = 1
+        context.shadowOffsetY = 1
+      } else {
+        // Light text - normal shadow
+        context.shadowColor = shadowColor
+        context.shadowBlur = 8
+        context.shadowOffsetX = 2
+        context.shadowOffsetY = 2
+      }
+      context.fillStyle = labelColor
       context.fillText(text, canvas.width / 2, canvas.height / 2)
       
       const texture = new THREE.CanvasTexture(canvas)
+      texture.colorSpace = THREE.SRGBColorSpace
       
       // Create plane geometry that matches canvas proportions
       // Height is determined by fontSize alone, width scales to fit text
@@ -1194,7 +1311,8 @@ function App() {
         transparent: true,
         side: THREE.FrontSide,
         depthTest: true,
-        depthWrite: false
+        depthWrite: false,
+        premultipliedAlpha: false
       })
       
       const mesh = new THREE.Mesh(geometry, material)
@@ -1220,6 +1338,7 @@ function App() {
       mesh.userData.type = 'country_label'
       mesh.userData.text = text
       mesh.userData.fontSize = fontSize
+      mesh.userData.countryName = countryName
       mesh.userData.initialPosition = position.clone()
       mesh.userData.initialQuaternion = mesh.quaternion.clone()
       mesh.visible = labelsVisibleRef.current
@@ -1245,8 +1364,15 @@ function App() {
         geometry.setAttribute('position', new THREE.Float32BufferAttribute(countryData.vertices, 3))
         geometry.computeVertexNormals()
         
+        // For 'classic' and 'dark-classic' themes, use hashed color based on country name
+        const isClassicTheme = currentThemeNameRef.current === 'classic' || currentThemeNameRef.current === 'dark-classic'
+        const isDarkClassic = currentThemeNameRef.current === 'dark-classic'
+        const countryColor = isClassicTheme
+          ? hashCountryToColor(countryData.name, isDarkClassic)
+          : currentColors.country
+        
         const material = new THREE.MeshBasicMaterial({
-          color: currentColors.country,
+          color: countryColor,
           side: THREE.DoubleSide
         })
         
@@ -1281,7 +1407,7 @@ function App() {
         )
         
         // Create label with calculated font size, placed at largest part's centroid
-        const label = createTextMesh(countryName, largestPart.centroid, fontSize)
+        const label = createTextMesh(countryName, largestPart.centroid, fontSize, countryName)
         
         // Compute bounding box for collision detection
         label.geometry.computeBoundingBox()
@@ -1336,13 +1462,25 @@ function App() {
           points.push(new THREE.Vector3(borderData[i], borderData[i + 1], borderData[i + 2]))
         }
         
-        const borderGeometry = new THREE.BufferGeometry().setFromPoints(points)
-        const borderMaterial = new THREE.LineBasicMaterial({
-          color: currentColors.border,
-          transparent: true,
-          opacity: 0.5
+        // Convert points to array format for Line2
+        const positions = []
+        points.forEach(p => {
+          positions.push(p.x, p.y, p.z)
         })
-        const borderLine = new THREE.LineLoop(borderGeometry, borderMaterial)
+        // Close the loop by adding first point at the end
+        positions.push(points[0].x, points[0].y, points[0].z)
+        
+        const lineGeometry = new LineGeometry()
+        lineGeometry.setPositions(positions)
+        
+        const lineMaterial = new LineMaterial({
+          color: currentColors.border.getHex(),
+          linewidth: getCurrentBorderWidth(), // Line2 uses pixels
+          transparent: false,
+          resolution: new THREE.Vector2(window.innerWidth, window.innerHeight)
+        })
+        
+        const borderLine = new Line2(lineGeometry, lineMaterial)
         borderLine.userData.type = 'border'
         borderLine.visible = bordersVisibleRef.current
         scene.add(borderLine)
@@ -1587,13 +1725,26 @@ function App() {
               })
               
               const currentColors = getCurrentColors()
-              const borderGeometry = new THREE.BufferGeometry().setFromPoints(borderPoints)
-              const borderMaterial = new THREE.LineBasicMaterial({
-                color: currentColors.border,
-                transparent: true,
-                opacity: 0.5
+              
+              // Convert points to array format for Line2
+              const positions = []
+              borderPoints.forEach(p => {
+                positions.push(p.x, p.y, p.z)
               })
-              const borderLine = new THREE.LineLoop(borderGeometry, borderMaterial)
+              // Close the loop by adding first point at the end
+              positions.push(borderPoints[0].x, borderPoints[0].y, borderPoints[0].z)
+              
+              const lineGeometry = new LineGeometry()
+              lineGeometry.setPositions(positions)
+              
+              const lineMaterial = new LineMaterial({
+                color: currentColors.border.getHex(),
+                linewidth: getCurrentBorderWidth(), // Line2 uses pixels
+                transparent: false,
+                resolution: new THREE.Vector2(window.innerWidth, window.innerHeight)
+              })
+              
+              const borderLine = new Line2(lineGeometry, lineMaterial)
               borderLine.userData.type = 'border'
               borderLine.visible = bordersVisibleRef.current
               scene.add(borderLine)
@@ -1780,13 +1931,27 @@ function App() {
       // Update country meshes
       countryMeshes.forEach(mesh => {
         const isHighlighted = mesh.userData.name === currentSelectedCountry
-        mesh.material.color.copy(isHighlighted ? newCountryHighlight : newCountryColor)
+        
+        // For 'classic' and 'dark-classic' themes, use hashed color based on country name
+        const isClassicTheme = currentThemeNameRef.current === 'classic' || currentThemeNameRef.current === 'dark-classic'
+        const isDarkClassic = currentThemeNameRef.current === 'dark-classic'
+        let countryColor
+        if (isClassicTheme) {
+          countryColor = isHighlighted ? newCountryHighlight : new THREE.Color(hashCountryToColor(mesh.userData.name, isDarkClassic))
+        } else {
+          countryColor = isHighlighted ? newCountryHighlight : newCountryColor
+        }
+        
+        mesh.material.color.copy(countryColor)
       })
       
       // Update borders
+      const borderWidth = getCurrentBorderWidth()
       scene.children.forEach(child => {
-        if (child.type === 'LineLoop') {
-          child.material.color.copy(newBorderColor)
+        if (child.userData.type === 'border') {
+          child.material.color.setHex(newBorderColor.getHex())
+          child.material.linewidth = borderWidth
+          child.material.needsUpdate = true
         }
       })
       
@@ -1804,6 +1969,7 @@ function App() {
           labelsToRegenerate.push({
             text: child.userData.text,
             fontSize: child.userData.fontSize,
+            countryName: child.userData.countryName,
             initialPosition: child.userData.initialPosition,
             initialQuaternion: child.userData.initialQuaternion,
             visible: child.visible
@@ -1811,12 +1977,25 @@ function App() {
         }
       })
       
-      // Remove old labels
-      scene.children = scene.children.filter(child => child.userData.type !== 'country_label')
+      // Remove old labels and dispose of their resources
+      const childrenToKeep = []
+      scene.children.forEach(child => {
+        if (child.userData.type === 'country_label') {
+          // Dispose of old label resources to prevent WebGL errors
+          if (child.material.map) {
+            child.material.map.dispose()
+          }
+          child.material.dispose()
+          child.geometry.dispose()
+        } else {
+          childrenToKeep.push(child)
+        }
+      })
+      scene.children = childrenToKeep
       
       // Create new labels with updated colors
       labelsToRegenerate.forEach(labelData => {
-        const newLabel = createTextMesh(labelData.text, labelData.initialPosition, labelData.fontSize)
+        const newLabel = createTextMesh(labelData.text, labelData.initialPosition, labelData.fontSize, labelData.countryName)
         newLabel.visible = labelData.visible
         
         // Apply current globe rotation to the label
@@ -1958,11 +2137,18 @@ function App() {
           const currentColors = getCurrentColors()
           
           // update colors: reset all to default, highlight selected
+          const isClassicTheme = currentThemeNameRef.current === 'classic' || currentThemeNameRef.current === 'dark-classic'
+          const isDarkClassic = currentThemeNameRef.current === 'dark-classic'
+          
           countryMeshes.forEach(mesh => {
             if (mesh.userData.name === clickedCountry) {
               mesh.material.color.copy(currentColors.highlight)
             } else {
-              mesh.material.color.copy(currentColors.country)
+              // For classic themes, use hashed color; otherwise use theme color
+              const countryColor = isClassicTheme 
+                ? new THREE.Color(hashCountryToColor(mesh.userData.name, isDarkClassic))
+                : currentColors.country
+              mesh.material.color.copy(countryColor)
             }
           })
           
@@ -1972,8 +2158,15 @@ function App() {
           // clicked on ocean, reset all colors
           console.log('Clicked ocean or no valid country found')
           const currentColors = getCurrentColors()
+          const isClassicTheme = currentThemeNameRef.current === 'classic' || currentThemeNameRef.current === 'dark-classic'
+          const isDarkClassic = currentThemeNameRef.current === 'dark-classic'
+          
           countryMeshes.forEach(mesh => {
-            mesh.material.color.copy(currentColors.country)
+            // For classic themes, use hashed color; otherwise use theme color
+            const countryColor = isClassicTheme 
+              ? new THREE.Color(hashCountryToColor(mesh.userData.name, isDarkClassic))
+              : currentColors.country
+            mesh.material.color.copy(countryColor)
           })
           currentSelectedCountry = null
           setSelectedCountry(null)
@@ -1992,6 +2185,13 @@ function App() {
       camera.aspect = containerRef.current.clientWidth / containerRef.current.clientHeight
       camera.updateProjectionMatrix()
       renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight)
+      
+      // Update Line2 materials resolution
+      scene.children.forEach(child => {
+        if (child.userData.type === 'border' && child.material) {
+          child.material.resolution.set(window.innerWidth, window.innerHeight)
+        }
+      })
     }
     window.addEventListener('resize', handleResize)
     
