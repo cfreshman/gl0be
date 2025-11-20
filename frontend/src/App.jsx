@@ -359,6 +359,14 @@ const THEMES = {
     background: '#111111',
     population: '#674d46'
   },
+  opposite: {
+    ocean: '#366b4a',
+    country: '#2158a0',
+    highlight: '#4a9eff',
+    border: '#55b080',
+    background: '#0a0a0a',
+    population: '#ffcc00'
+  },
 }
 
 // Helper to convert HSL to hex
