@@ -4,9 +4,10 @@ import { Line2 } from 'three/examples/jsm/lines/Line2.js'
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js'
 import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js'
 import Delaunator from 'delaunator'
+import { getPolarHemisphere, repairPolarGeometry, triangulatePolarPolygon } from './polarGeometry'
 import './App.css'
 
-const GLOBE_VERSION = 3 // Increment when algorithm changes
+const GLOBE_VERSION = 5 // Increment when algorithm changes
 const GLOBE_GEOMETRY_URL = 'https://p057.co/:1w4a3vqswy1i.json'
 
 // Globe themes
@@ -529,15 +530,37 @@ function latLonToSphere(lat, lon, radius) {
 
 // point in polygon test
 function isPointInPolygon(testLon, testLat, polygon) {
+  // Check if polygon crosses antimeridian (longitude wraps around ±180)
+  let minLon = Infinity
+  let maxLon = -Infinity
+  for (let i = 0; i < polygon.length; i++) {
+    const [lon] = polygon[i]
+    minLon = Math.min(minLon, lon)
+    maxLon = Math.max(maxLon, lon)
+  }
+  
+  const crossesAntimeridian = (maxLon - minLon) > 180
+  
   let inside = false
   
   for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-    const [xi, yi] = polygon[i]
-    const [xj, yj] = polygon[j]
+    let [xi, yi] = polygon[i]
+    let [xj, yj] = polygon[j]
     
-    const intersect = ((yi > testLat) !== (yj > testLat)) &&
-      (testLon < (xj - xi) * (testLat - yi) / (yj - yi) + xi)
-    if (intersect) inside = !inside
+    // Handle antimeridian crossing by normalizing longitudes
+    if (crossesAntimeridian) {
+      if (xi < 0) xi += 360
+      if (xj < 0) xj += 360
+      let testLonNorm = testLon < 0 ? testLon + 360 : testLon
+      
+      const intersect = ((yi > testLat) !== (yj > testLat)) &&
+        (testLonNorm < (xj - xi) * (testLat - yi) / (yj - yi) + xi)
+      if (intersect) inside = !inside
+    } else {
+      const intersect = ((yi > testLat) !== (yj > testLat)) &&
+        (testLon < (xj - xi) * (testLat - yi) / (yj - yi) + xi)
+      if (intersect) inside = !inside
+    }
   }
   
   return inside
@@ -1355,6 +1378,7 @@ function App() {
     }
     
     const renderGeometry = (data) => {
+      data = repairPolarGeometry(data, globeRadius + 0.1)
       const currentColors = getCurrentColors()
       
       // Group countries by name to handle multi-part countries
@@ -1625,65 +1649,70 @@ function App() {
           
           coordinates.forEach(polygon => {
               const outerRing = polygon[0]
+              let vertices
+              if (getPolarHemisphere(outerRing)) {
+                vertices = triangulatePolarPolygon(outerRing, globeRadius + 0.1)
+              } else {
               
-              // Sample border points
-              const borderPoints = []
-              for (let i = 0; i < outerRing.length - 1; i++) {
-              const [lon1, lat1] = outerRing[i]
-              const [lon2, lat2] = outerRing[i + 1]
+                // Sample border points
+                const borderPoints = []
+                for (let i = 0; i < outerRing.length - 1; i++) {
+                const [lon1, lat1] = outerRing[i]
+                const [lon2, lat2] = outerRing[i + 1]
               
-              const dist = Math.sqrt((lon2 - lon1) ** 2 + (lat2 - lat1) ** 2)
-              const numSamples = Math.max(2, Math.ceil(dist / 0.5))
+                const dist = Math.sqrt((lon2 - lon1) ** 2 + (lat2 - lat1) ** 2)
+                const numSamples = Math.max(2, Math.ceil(dist / 0.5))
               
-              for (let s = 0; s < numSamples; s++) {
-                const t = s / numSamples
-                const lat = lat1 + (lat2 - lat1) * t
-                const lon = lon1 + (lon2 - lon1) * t
-                  borderPoints.push({ lat, lon })
+                for (let s = 0; s < numSamples; s++) {
+                  const t = s / numSamples
+                  const lat = lat1 + (lat2 - lat1) * t
+                  const lon = lon1 + (lon2 - lon1) * t
+                    borderPoints.push({ lat, lon })
+                  }
                 }
-              }
               
-              // Find grid points inside this country
-              const interiorPoints = []
-              gridPoints.forEach(p => {
-                const { lat, lon } = sphereToLatLon(p.x, p.y, p.z)
-                if (isPointInPolygon(lon, lat, outerRing)) {
-                  interiorPoints.push({ lat, lon })
+                // Find grid points inside this country
+                const interiorPoints = []
+                gridPoints.forEach(p => {
+                  const { lat, lon } = sphereToLatLon(p.x, p.y, p.z)
+                  if (isPointInPolygon(lon, lat, outerRing)) {
+                    interiorPoints.push({ lat, lon })
+                  }
+                })
+              
+                // Combine border and interior points for this country
+                const countryPoints = [...borderPoints, ...interiorPoints]
+              
+                if (countryPoints.length < 3) return
+              
+                // Triangulate in 2D
+                const points2D = countryPoints.map(p => [p.lon, p.lat])
+                const delaunay = Delaunator.from(points2D)
+              
+                // Create mesh, filtering out triangles outside the polygon
+                vertices = []
+                for (let i = 0; i < delaunay.triangles.length; i += 3) {
+                const p1 = countryPoints[delaunay.triangles[i]]
+                const p2 = countryPoints[delaunay.triangles[i + 1]]
+                const p3 = countryPoints[delaunay.triangles[i + 2]]
+              
+                // Calculate triangle centroid
+                const centroidLon = (p1.lon + p2.lon + p3.lon) / 3
+                const centroidLat = (p1.lat + p2.lat + p3.lat) / 3
+              
+                // Only include triangles whose centroid is inside the polygon
+                if (!isPointInPolygon(centroidLon, centroidLat, outerRing)) continue
+              
+                const pt1 = latLonToSphere(p1.lat, p1.lon, globeRadius + 0.1)
+                const pt2 = latLonToSphere(p2.lat, p2.lon, globeRadius + 0.1)
+                const pt3 = latLonToSphere(p3.lat, p3.lon, globeRadius + 0.1)
+              
+                    vertices.push(
+                    pt1.x, pt1.y, pt1.z,
+                    pt2.x, pt2.y, pt2.z,
+                    pt3.x, pt3.y, pt3.z
+                  )
                 }
-              })
-              
-              // Combine border and interior points for this country
-              const countryPoints = [...borderPoints, ...interiorPoints]
-              
-              if (countryPoints.length < 3) return
-              
-              // Triangulate in 2D
-              const points2D = countryPoints.map(p => [p.lon, p.lat])
-              const delaunay = Delaunator.from(points2D)
-              
-              // Create mesh, filtering out triangles outside the polygon
-              const vertices = []
-              for (let i = 0; i < delaunay.triangles.length; i += 3) {
-              const p1 = countryPoints[delaunay.triangles[i]]
-              const p2 = countryPoints[delaunay.triangles[i + 1]]
-              const p3 = countryPoints[delaunay.triangles[i + 2]]
-              
-              // Calculate triangle centroid
-              const centroidLon = (p1.lon + p2.lon + p3.lon) / 3
-              const centroidLat = (p1.lat + p2.lat + p3.lat) / 3
-              
-              // Only include triangles whose centroid is inside the polygon
-              if (!isPointInPolygon(centroidLon, centroidLat, outerRing)) continue
-              
-              const pt1 = latLonToSphere(p1.lat, p1.lon, globeRadius + 0.1)
-              const pt2 = latLonToSphere(p2.lat, p2.lon, globeRadius + 0.1)
-              const pt3 = latLonToSphere(p3.lat, p3.lon, globeRadius + 0.1)
-              
-                  vertices.push(
-                  pt1.x, pt1.y, pt1.z,
-                  pt2.x, pt2.y, pt2.z,
-                  pt3.x, pt3.y, pt3.z
-                )
               }
               
               if (vertices.length > 0) {
